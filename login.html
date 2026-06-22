@@ -417,6 +417,7 @@ async function verifyOTP(){
   if(otp.length<6){showToast('Enter the 6-digit OTP');return;}
   const btn=document.getElementById('btn-verify');
   btn.disabled=true; btn.innerHTML='Verifying...';
+  window._otpVerifying=true;
   try{
     const result=await confirmationResult.confirm(otp);
     clearInterval(timerInterval);
@@ -529,13 +530,15 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     return signInWithPopup(auth, new GoogleAuthProvider());
   };
 
-  // Auto-redirect if Firebase session active
+  // Auto-redirect only on page load (not during active OTP verification)
+  let initialCheck = true;
   onAuthStateChanged(auth, (user) => {
-    if (user) {
+    if (user && initialCheck && !window._otpVerifying) {
       localStorage.setItem('mtr_user', JSON.stringify({loggedIn:true, uid:user.uid, email:user.email||'', phone:user.phoneNumber||'', loginTime:Date.now()}));
       const next = new URLSearchParams(location.search).get('next') || 'cart.html';
       location.href = next;
     }
+    initialCheck = false;
   });
 </script>
 </body>
