@@ -244,8 +244,10 @@
       <!-- Screen 1: Phone number -->
       <div class="screen active" id="screen-phone">
         <label class="field-label">Full Name <span style="color:var(--red,#c0392b)">*</span></label>
-        <input class="phone-input" id="name-input" type="text" placeholder="Enter your full name"
-          oninput="onPhoneInput()" style="margin-bottom:14px;">
+        <div class="phone-wrap" style="margin-bottom:14px;">
+          <input class="phone-input" id="name-input" type="text" placeholder="Enter your full name"
+            oninput="onPhoneInput()">
+        </div>
         <label class="field-label">Mobile Number <span style="color:var(--red,#c0392b)">*</span></label>
         <div class="phone-wrap">
           <div class="country-code">🇮🇳 +91</div>
