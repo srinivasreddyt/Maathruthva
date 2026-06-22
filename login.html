@@ -243,14 +243,17 @@
 
       <!-- Screen 1: Phone number -->
       <div class="screen active" id="screen-phone">
-        <label class="field-label">Mobile Number</label>
+        <label class="field-label">Full Name <span style="color:var(--red,#c0392b)">*</span></label>
+        <input class="phone-input" id="name-input" type="text" placeholder="Enter your full name"
+          oninput="onPhoneInput()" style="margin-bottom:14px;">
+        <label class="field-label">Mobile Number <span style="color:var(--red,#c0392b)">*</span></label>
         <div class="phone-wrap">
           <div class="country-code">🇮🇳 +91</div>
           <input class="phone-input" id="phone-input" type="tel" inputmode="numeric"
             placeholder="Enter 10-digit mobile number" maxlength="10"
-            oninput="onPhoneInput(this)" onkeydown="if(event.key==='Enter') sendOTP()">
+            oninput="onPhoneInput()" onkeydown="if(event.key==='Enter') sendOTP()">
         </div>
-        <div class="hint" id="phone-hint">We'll send a 4-digit OTP to verify your number</div>
+        <div class="hint" id="phone-hint">We'll send a 6-digit OTP to verify your number</div>
         <div id="recaptcha-container"></div>
         <button class="btn-primary" id="btn-send-otp" onclick="sendOTP()" disabled>
           Send OTP <span>→</span>
@@ -340,16 +343,20 @@ function showToast(m){const t=document.getElementById('toast');t.textContent=m;t
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 // ── Phone screen ──
-function onPhoneInput(el){
-  el.value=el.value.replace(/\D/g,'');
-  const valid=el.value.length===10&&/^[6-9]/.test(el.value);
+function onPhoneInput(){
+  const ph=document.getElementById('phone-input');
+  ph.value=ph.value.replace(/\D/g,'');
+  const name=document.getElementById('name-input').value.trim();
+  const valid=ph.value.length===10&&/^[6-9]/.test(ph.value)&&name.length>0;
   document.getElementById('btn-send-otp').disabled=!valid;
   const hint=document.getElementById('phone-hint');
-  if(el.value.length===10&&!valid){hint.textContent='Please enter a valid Indian mobile number';hint.className='hint error';}
-  else{hint.textContent="We'll send an OTP to verify your number";hint.className='hint';}
+  if(ph.value.length===10&&!/^[6-9]/.test(ph.value)){hint.textContent='Please enter a valid Indian mobile number';hint.className='hint error';}
+  else{hint.textContent="We'll send a 6-digit OTP to verify your number";hint.className='hint';}
 }
 
 async function sendOTP(){
+  const NAME=document.getElementById('name-input').value.trim();
+  if(!NAME){showToast('Please enter your name');return;}
   PHONE=document.getElementById('phone-input').value.trim();
   if(PHONE.length!==10){showToast('Enter a valid 10-digit number');return;}
   if(!window.sendOTPFirebase){
@@ -404,7 +411,8 @@ async function verifyOTP(){
   try{
     const result=await confirmationResult.confirm(otp);
     clearInterval(timerInterval);
-    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,phone:PHONE,uid:result.user.uid,loginTime:Date.now()}));
+    const NAME=document.getElementById('name-input').value.trim();
+    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name:NAME,phone:PHONE,uid:result.user.uid,loginTime:Date.now()}));
     showScreen('screen-success');
     animateDots();
     setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
