@@ -415,6 +415,7 @@ async function verifyOTP(){
     clearInterval(timerInterval);
     const NAME=document.getElementById('name-input').value.trim();
     localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name:NAME,phone:PHONE,uid:result.user.uid,loginTime:Date.now()}));
+    if(window.saveUserToFirestore) window.saveUserToFirestore(result.user.uid, NAME, '+91'+PHONE);
     showScreen('screen-success');
     animateDots();
     setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
@@ -459,6 +460,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
     authDomain: "maathruthva.firebaseapp.com",
@@ -469,7 +471,14 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   let rcVerifier = null;
+
+  window.saveUserToFirestore = async function(uid, name, phone) {
+    try {
+      await setDoc(doc(db, 'users', uid), { name, phone, updatedAt: serverTimestamp() }, { merge: true });
+    } catch(e) { console.error('Save user error:', e); }
+  };
 
   // Expose a single wrapper so regular scripts never touch auth/RecaptchaVerifier directly
   window.sendOTPFirebase = async function(phone) {
