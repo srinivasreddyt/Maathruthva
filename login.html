@@ -461,9 +461,17 @@ async function submitName(){
 async function googleSignIn(){
   try{
     const result=await window.googleSignInFirebase();
-    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,email:result.user.email,uid:result.user.uid,loginTime:Date.now()}));
+    const u=result.user;
+    const name=(u.displayName||'').trim()||'User';
+    const email=u.email||'';
+    const phone=u.phoneNumber||'';
+    const uid=u.uid;
+    // Save to localStorage
+    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name,email,phone,uid,loginTime:Date.now()}));
+    // Save to Firestore (use email as phone fallback for Google users)
+    if(window.saveUserToFirestore) await window.saveUserToFirestore(uid,name,phone||email);
     showScreen('screen-success');
-    document.getElementById('success-name').textContent='Welcome, '+result.user.displayName.split(' ')[0]+'!';
+    document.getElementById('success-name').textContent='Welcome, '+name.split(' ')[0]+'!';
     animateDots();
     setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;},2000);
   }catch(e){
