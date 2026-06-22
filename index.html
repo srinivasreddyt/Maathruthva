@@ -467,11 +467,13 @@
   var u = localStorage.getItem('mtr_user');
   var nav = document.getElementById('nav-actions');
   var mob = document.getElementById('mobile-greeting');
-  if(u){
+  var cartItems = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
+  var cartCount = cartItems.length;
+  if(u && cartCount > 0){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = '<span class="nav-greeting">Hi, '+name+'</span><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart</button>';
+      nav.innerHTML = '<span class="nav-greeting">Hi, '+name+'</span><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
