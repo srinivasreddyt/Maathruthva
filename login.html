@@ -350,16 +350,13 @@ function onPhoneInput(el){
 async function sendOTP(){
   PHONE=document.getElementById('phone-input').value.trim();
   if(PHONE.length!==10){showToast('Enter a valid 10-digit number');return;}
-  if(!window.firebaseAuth||!window.RecaptchaVerifier||!window.fbSignInWithPhone){
+  if(!window.sendOTPFirebase){
     showToast('Firebase not loaded — please refresh the page and try again.');return;
   }
   const btn=document.getElementById('btn-send-otp');
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
-    // Create a fresh RecaptchaVerifier each time
-    if(window.recaptchaVerifier){try{window.recaptchaVerifier.clear();}catch(ex){}}
-    window.recaptchaVerifier = new window.RecaptchaVerifier(window.firebaseAuth, 'recaptcha-container', {size:'invisible'});
-    confirmationResult=await window.fbSignInWithPhone('+91'+PHONE, window.recaptchaVerifier);
+    confirmationResult=await window.sendOTPFirebase('+91'+PHONE);
     const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
     document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
     [0,1,2,3].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
@@ -370,7 +367,7 @@ async function sendOTP(){
     startTimer();
   }catch(e){
     btn.disabled=false; btn.innerHTML='Send OTP <span>→</span>';
-    if(window.recaptchaVerifier){try{window.recaptchaVerifier.clear();}catch(ex){} window.recaptchaVerifier=null;}
+    if(window.sendOTPFirebaseReset) window.sendOTPFirebaseReset();
     showToast(e.message||'Failed to send OTP. Try again.');
   }
 }
@@ -420,7 +417,7 @@ async function verifyOTP(){
 // ── Google Sign-In ──
 async function googleSignIn(){
   try{
-    const result=await window.fbGoogleSignIn(window.firebaseAuth, new window.GoogleAuthProvider());
+    const result=await window.googleSignInFirebase();
     localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,email:result.user.email,uid:result.user.uid,loginTime:Date.now()}));
     showScreen('screen-success');
     document.getElementById('success-name').textContent='Welcome, '+result.user.displayName.split(' ')[0]+'!';
@@ -460,12 +457,21 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  // Invisible reCAPTCHA on send-otp button
-  window.firebaseAuth = auth;
-  window.fbSignInWithPhone = signInWithPhoneNumber;
-  window.fbGoogleSignIn = signInWithPopup;
-  window.GoogleAuthProvider = GoogleAuthProvider;
-  window.RecaptchaVerifier = RecaptchaVerifier;
+  let rcVerifier = null;
+
+  // Expose a single wrapper so regular scripts never touch auth/RecaptchaVerifier directly
+  window.sendOTPFirebase = async function(phone) {
+    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+    rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+    return signInWithPhoneNumber(auth, phone, rcVerifier);
+  };
+  window.sendOTPFirebaseReset = function() {
+    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+  };
+  window.googleSignInFirebase = async function() {
+    return signInWithPopup(auth, new GoogleAuthProvider());
+  };
+
   // Auto-redirect if Firebase session active
   onAuthStateChanged(auth, (user) => {
     if (user) {
