@@ -350,6 +350,9 @@ function onPhoneInput(el){
 async function sendOTP(){
   PHONE=document.getElementById('phone-input').value.trim();
   if(PHONE.length!==10){showToast('Enter a valid 10-digit number');return;}
+  if(!window.firebaseAuth||!window.RecaptchaVerifier||!window.fbSignInWithPhone){
+    showToast('Firebase not loaded — please refresh the page and try again.');return;
+  }
   const btn=document.getElementById('btn-send-otp');
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
