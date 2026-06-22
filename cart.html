@@ -416,26 +416,6 @@
 
 <!-- Razorpay SDK -->
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  const firebaseConfig = {
-    apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
-    authDomain: "maathruthva.firebaseapp.com",
-    projectId: "maathruthva",
-    storageBucket: "maathruthva.firebasestorage.app",
-    messagingSenderId: "772318181453",
-    appId: "1:772318181453:web:e736b87f53c264b8cf8404"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.saveOrderToFirestore = async function(orderData) {
-    try {
-      const ref = await addDoc(collection(db, 'orders'), { ...orderData, createdAt: serverTimestamp() });
-      console.log('Order saved:', ref.id);
-    } catch(e) { console.error('Firestore error:', e); }
-  };
-</script>
 
 <script>
 // ── Product catalogue ──
@@ -679,15 +659,7 @@ function initPayment(){
     },
     theme:{ color:'#4A6830' },
     handler: function(response){
-      const user = JSON.parse(localStorage.getItem('mtr_user')||'{}');
-      const orderData = {
-        paymentId: response.razorpay_payment_id,
-        items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return {name:p.name,qty:c.qty,price:p.price};}),
-        address: addresses[selectedAddr],
-        subtotal: subtotal, discount: promoDiscount, shipping: shipping, total: total/100,
-        userEmail: user.email||'guest', userId: user.uid||'guest', status:'confirmed'
-      };
-      if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
+      // Payment successful
       document.getElementById('order-id-display').textContent = 'Order ID: ' + response.razorpay_payment_id;
       document.getElementById('success-modal').classList.add('open');
       cart=[]; localStorage.removeItem('mtr_cart');
@@ -709,11 +681,7 @@ function initPayment(){
     // Razorpay not loaded or test mode
     showToast('Razorpay not configured — add your API key to go live');
     setTimeout(()=>{
-      const testId='MTR-TEST-'+Date.now();
-      const user=JSON.parse(localStorage.getItem('mtr_user')||'{}');
-      const orderData={paymentId:testId,items:active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return{name:p.name,qty:c.qty,price:p.price};}),address:addresses[selectedAddr],subtotal:subtotal,discount:promoDiscount,shipping:shipping,total:total/100,userEmail:user.email||'guest',userId:user.uid||'guest',status:'test'};
-      if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
-      document.getElementById('order-id-display').textContent = 'Order ID: '+testId;
+      document.getElementById('order-id-display').textContent = 'Order ID: MTR-TEST-'+Date.now();
       document.getElementById('success-modal').classList.add('open');
       cart=[]; localStorage.removeItem('mtr_cart');
     }, 1000);
