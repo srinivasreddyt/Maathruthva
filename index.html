@@ -469,7 +469,7 @@
   var mob = document.getElementById('mobile-greeting');
   var cartItems = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
   var cartCount = cartItems.length;
-  if(u && cartCount > 0){
+  if(u){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
@@ -479,8 +479,10 @@
         mob.textContent = 'Hi, '+name;
       }
     }catch(e){
-      nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
+      nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
     }
+  } else if(cartCount > 0){
+    nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
   } else {
     nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
   }
