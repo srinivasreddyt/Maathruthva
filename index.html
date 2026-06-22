@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -251,10 +251,10 @@
       <li><a href="#values">Why Us</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
-    <div class="nav-actions">
-      <button class="icon-btn account-btn">Account</button>
-      <button class="cart-pill" onclick="location.href='Food_Products.html'">Shop</button>
-    </div>
+    <div class="nav-actions" id="nav-actions"></div>
+
+
+
   </div>
   <nav class="mobile-menu" id="mobile-menu">
     <a href="#categories" onclick="closeMenu()">Categories</a>
@@ -463,5 +463,20 @@
   })();
 </script>
 
+<script>
+(function(){
+  var u = JSON.parse(localStorage.getItem('mtr_user') || 'null');
+  var loggedIn = u && (u.loggedIn || u.guest) && (Date.now() - u.loginTime) < 86400000;
+  var nav = document.getElementById('nav-actions');
+  if (loggedIn) {
+    nav.innerHTML =
+      '<span style="font-size:.8rem;color:var(--sage-deep);letter-spacing:.04em;margin-right:4px;">Hi, ' + (u.name ? u.name.split(' ')[0] : 'there') + '</span>' +
+      '<button class="cart-pill" onclick="location.href=\'cart.html\'">🛒 Cart</button>';
+  } else {
+    nav.innerHTML =
+      '<button class="icon-btn account-btn" onclick="location.href=\'login.html\'">Login</button>' +
+      '<button class="cart-pill" onclick="location.href=\'login.html\'">Get Started</button>';
+  }
+})();
+</script>
 </body>
-</html>
