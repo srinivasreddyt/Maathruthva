@@ -418,7 +418,7 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
     authDomain: "maathruthva.firebaseapp.com",
@@ -429,11 +429,26 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
   window.saveOrderToFirestore = async function(orderData) {
     try {
       const ref = await addDoc(collection(db, 'orders'), { ...orderData, createdAt: serverTimestamp() });
-      console.log('Order saved to Firestore:', ref.id);
+      console.log('Order saved:', ref.id);
     } catch(e) { console.error('Firestore error:', e); }
+  };
+
+  window.fetchAddressesFromFirestore = async function(uid) {
+    try {
+      const snap = await getDocs(collection(db, 'users', uid, 'addresses'));
+      return snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+    } catch(e) { console.error('Fetch addresses error:', e); return []; }
+  };
+
+  window.saveAddressToFirestore = async function(uid, addr) {
+    try {
+      const ref = await addDoc(collection(db, 'users', uid, 'addresses'), { ...addr, createdAt: serverTimestamp() });
+      return ref.id;
+    } catch(e) { console.error('Save address error:', e); return null; }
   };
 </script>
 
@@ -595,7 +610,7 @@ function fetchPin(val){
   }
 }
 
-function saveAddress(){
+async function saveAddress(){
   const name=document.getElementById('f-name').value.trim();
   const phone=document.getElementById('f-phone').value.trim();
   const pin=document.getElementById('f-pin').value.trim();
@@ -604,6 +619,12 @@ function saveAddress(){
   const state=document.getElementById('f-state').value;
   if(!name||!phone||!pin||!addr1||!city||!state){ showToast('Please fill all required fields'); return; }
   const newAddr={id:Date.now(),name,phone,pin,addr1,addr2:document.getElementById('f-addr2').value.trim(),city,state,type:document.getElementById('f-type').value};
+  // Save to Firestore if user is logged in
+  const user=JSON.parse(localStorage.getItem('mtr_user')||'null');
+  if(user&&user.uid&&window.saveAddressToFirestore){
+    const fid=await window.saveAddressToFirestore(user.uid, newAddr);
+    if(fid) newAddr.firestoreId=fid;
+  }
   addresses.push(newAddr);
   selectedAddr=addresses.length-1;
   localStorage.setItem('mtr_addresses',JSON.stringify(addresses));
@@ -614,22 +635,31 @@ function saveAddress(){
 }
 
 // ── Section navigation ──
-function goToAddress(){
+async function goToAddress(){
   if(!cart.filter(c=>c.qty>0).length){ showToast('Your cart is empty'); return; }
-  // ── Auth check: redirect to OTP login if not logged in ──
   const user = JSON.parse(localStorage.getItem('mtr_user')||'null');
   const loggedIn = user && (user.loggedIn||user.guest) && (Date.now()-user.loginTime)<86400000;
   if(!loggedIn){ location.href='login.html?next=cart.html'; return; }
   document.getElementById('section-cart').style.display='none';
   document.getElementById('section-address').style.display='block';
-  // Scroll to top so user sees the address section from the beginning
-  window.scrollTo({top: 0, behavior: 'smooth'});
+  window.scrollTo({top:0, behavior:'smooth'});
   document.getElementById('step1').classList.replace('active','done');
   document.getElementById('line1').classList.add('done');
   document.getElementById('step2').classList.add('active');
   document.getElementById('summary-btn-text').textContent='Continue to Payment';
-  currentSection='address'; renderAddresses();
-  window.scrollTo({top:0, behavior:'smooth'});
+  currentSection='address';
+  // Fetch saved addresses from Firestore for logged-in users
+  if(user&&user.uid&&window.fetchAddressesFromFirestore){
+    const addrList=document.getElementById('addr-list');
+    addrList.innerHTML='<div style="text-align:center;padding:20px;color:var(--sage)">Loading addresses…</div>';
+    const saved=await window.fetchAddressesFromFirestore(user.uid);
+    if(saved.length){
+      addresses=saved;
+      selectedAddr=0;
+      localStorage.setItem('mtr_addresses',JSON.stringify(addresses));
+    }
+  }
+  renderAddresses();
 }
 
 function backToCart(){
