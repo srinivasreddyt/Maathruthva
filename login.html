@@ -251,6 +251,7 @@
             oninput="onPhoneInput(this)" onkeydown="if(event.key==='Enter') sendOTP()">
         </div>
         <div class="hint" id="phone-hint">We'll send a 4-digit OTP to verify your number</div>
+        <div id="recaptcha-container"></div>
         <button class="btn-primary" id="btn-send-otp" onclick="sendOTP()" disabled>
           Send OTP <span>→</span>
         </button>
@@ -352,6 +353,9 @@ async function sendOTP(){
   const btn=document.getElementById('btn-send-otp');
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
+    // Create a fresh RecaptchaVerifier each time
+    if(window.recaptchaVerifier){try{window.recaptchaVerifier.clear();}catch(ex){}}
+    window.recaptchaVerifier = new window.RecaptchaVerifier(window.firebaseAuth, 'recaptcha-container', {size:'invisible'});
     confirmationResult=await window.fbSignInWithPhone('+91'+PHONE, window.recaptchaVerifier);
     const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
     document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
@@ -363,9 +367,8 @@ async function sendOTP(){
     startTimer();
   }catch(e){
     btn.disabled=false; btn.innerHTML='Send OTP <span>→</span>';
+    if(window.recaptchaVerifier){try{window.recaptchaVerifier.clear();}catch(ex){} window.recaptchaVerifier=null;}
     showToast(e.message||'Failed to send OTP. Try again.');
-    // Reset reCAPTCHA
-    if(window.recaptchaVerifier){window.recaptchaVerifier.render().then(id=>grecaptcha.reset(id)).catch(()=>{});}
   }
 }
 
@@ -455,11 +458,11 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   // Invisible reCAPTCHA on send-otp button
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'btn-send-otp', { size: 'invisible' });
   window.firebaseAuth = auth;
   window.fbSignInWithPhone = signInWithPhoneNumber;
   window.fbGoogleSignIn = signInWithPopup;
   window.GoogleAuthProvider = GoogleAuthProvider;
+  window.RecaptchaVerifier = RecaptchaVerifier;
   // Auto-redirect if Firebase session active
   onAuthStateChanged(auth, (user) => {
     if (user) {
