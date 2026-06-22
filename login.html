@@ -255,7 +255,7 @@
           Send OTP <span>→</span>
         </button>
         <div class="divider"><span>OR</span></div>
-        <button class="btn-ghost" onclick="guestCheckout()">Continue as Guest →</button>
+        <button class="btn-ghost" onclick="googleSignIn()" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;"> Sign in with Google</button>
       </div>
 
       <!-- Screen 2: OTP entry -->
@@ -325,177 +325,149 @@
     setTimeout(hide, 3000);
   })();
 </script>
-
 <script>
 // ── State ──
 let PHONE = '';
-let DEMO_OTP = '';   // In production, this comes from your SMS API (Twilio / MSG91 / Fast2SMS)
+let confirmationResult = null;
 let timerInterval;
 
 // ── Utility ──
 let tt;
-function showToast(m){
-  const t=document.getElementById('toast');
-  t.textContent=m; t.classList.add('show');
-  clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2800);
-}
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 // ── Phone screen ──
 function onPhoneInput(el){
-  el.value = el.value.replace(/\D/g,'');
-  const valid = el.value.length===10 && /^[6-9]/.test(el.value);
-  document.getElementById('btn-send-otp').disabled = !valid;
-  const hint = document.getElementById('phone-hint');
-  if(el.value.length===10 && !valid){
-    hint.textContent='Please enter a valid Indian mobile number';
-    hint.className='hint error';
-  } else {
-    hint.textContent="We'll send a 4-digit OTP to verify your number";
-    hint.className='hint';
-  }
+  el.value=el.value.replace(/\D/g,'');
+  const valid=el.value.length===10&&/^[6-9]/.test(el.value);
+  document.getElementById('btn-send-otp').disabled=!valid;
+  const hint=document.getElementById('phone-hint');
+  if(el.value.length===10&&!valid){hint.textContent='Please enter a valid Indian mobile number';hint.className='hint error';}
+  else{hint.textContent="We'll send an OTP to verify your number";hint.className='hint';}
 }
 
-function sendOTP(){
-  PHONE = document.getElementById('phone-input').value.trim();
-  if(PHONE.length!==10){ showToast('Enter a valid 10-digit number'); return; }
-
-  // Generate demo OTP (in production: call your SMS API here)
-  DEMO_OTP = String(Math.floor(1000+Math.random()*9000));
-
-  // Show OTP to user in demo mode (in production, this goes via SMS only)
-  showToast('Demo OTP: ' + DEMO_OTP + ' (use this to test)');
-  console.log('Demo OTP:', DEMO_OTP); // visible in browser console
-
-  // Update target display
-  const masked = PHONE.slice(0,2) + '••••••' + PHONE.slice(-2);
-  document.getElementById('otp-target').innerHTML = '📱 +91 ' + masked;
-
-  // Clear OTP boxes
-  [0,1,2,3].forEach(i=>{
-    const b=document.getElementById('otp'+i);
-    b.value=''; b.classList.remove('filled','error');
-  });
-  document.getElementById('btn-verify').disabled=true;
-  document.getElementById('otp-hint').textContent='';
-
-  showScreen('screen-otp');
-  setTimeout(()=>document.getElementById('otp0').focus(), 350);
-  startTimer();
+async function sendOTP(){
+  PHONE=document.getElementById('phone-input').value.trim();
+  if(PHONE.length!==10){showToast('Enter a valid 10-digit number');return;}
+  const btn=document.getElementById('btn-send-otp');
+  btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
+  try{
+    confirmationResult=await window.fbSignInWithPhone('+91'+PHONE, window.recaptchaVerifier);
+    const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
+    document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
+    [0,1,2,3].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
+    document.getElementById('btn-verify').disabled=true;
+    document.getElementById('otp-hint').textContent='';
+    showScreen('screen-otp');
+    setTimeout(()=>document.getElementById('otp0').focus(),350);
+    startTimer();
+  }catch(e){
+    btn.disabled=false; btn.innerHTML='Send OTP <span>→</span>';
+    showToast(e.message||'Failed to send OTP. Try again.');
+    // Reset reCAPTCHA
+    if(window.recaptchaVerifier){window.recaptchaVerifier.render().then(id=>grecaptcha.reset(id)).catch(()=>{});}
+  }
 }
 
 // ── OTP boxes ──
-function otpInput(el, idx){
-  el.value = el.value.replace(/\D/g,'').slice(-1);
-  el.classList.toggle('filled', el.value!=='');
-  if(el.value && idx<3) document.getElementById('otp'+(idx+1)).focus();
+function otpInput(el,idx){
+  el.value=el.value.replace(/\D/g,'').slice(-1);
+  el.classList.toggle('filled',el.value!=='');
+  if(el.value&&idx<3)document.getElementById('otp'+(idx+1)).focus();
   checkOTPComplete();
 }
-function otpKey(e, idx){
-  if(e.key==='Backspace' && !e.target.value && idx>0){
-    const prev=document.getElementById('otp'+(idx-1));
-    prev.value=''; prev.classList.remove('filled');
-    prev.focus();
-  }
-  if(e.key==='Enter') verifyOTP();
+function otpKey(e,idx){
+  if(e.key==='Backspace'&&!e.target.value&&idx>0){const prev=document.getElementById('otp'+(idx-1));prev.value='';prev.classList.remove('filled');prev.focus();}
+  if(e.key==='Enter')verifyOTP();
 }
-function checkOTPComplete(){
-  const full=[0,1,2,3].every(i=>document.getElementById('otp'+i).value!=='');
-  document.getElementById('btn-verify').disabled=!full;
-}
+function checkOTPComplete(){const full=[0,1,2,3].every(i=>document.getElementById('otp'+i).value!=='');document.getElementById('btn-verify').disabled=!full;}
 
-// Paste support — paste a 4-digit OTP across all boxes
-document.addEventListener('paste', function(e){
+document.addEventListener('paste',function(e){
   const text=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
-  if(text.length>=4 && document.getElementById('screen-otp').classList.contains('active')){
-    [0,1,2,3].forEach(i=>{
-      const b=document.getElementById('otp'+i);
-      b.value=text[i]||'';
-      b.classList.toggle('filled',b.value!=='');
-    });
-    checkOTPComplete();
-    document.getElementById('otp3').focus();
-    e.preventDefault();
+  if(text.length>=4&&document.getElementById('screen-otp').classList.contains('active')){
+    [0,1,2,3].forEach(i=>{const b=document.getElementById('otp'+i);b.value=text[i]||'';b.classList.toggle('filled',b.value!=='');});
+    checkOTPComplete();document.getElementById('otp3').focus();e.preventDefault();
   }
 });
 
 // ── Verify OTP ──
-function verifyOTP(){
-  const entered=[0,1,2,3].map(i=>document.getElementById('otp'+i).value).join('');
-  if(entered.length<4){ showToast('Enter the 4-digit OTP'); return; }
-
-  if(entered===DEMO_OTP){
-    // ✅ OTP correct
+async function verifyOTP(){
+  const otp=[0,1,2,3].map(i=>document.getElementById('otp'+i).value).join('');
+  if(otp.length<4){showToast('Enter the 4-digit OTP');return;}
+  const btn=document.getElementById('btn-verify');
+  btn.disabled=true; btn.innerHTML='Verifying...';
+  try{
+    const result=await confirmationResult.confirm(otp);
     clearInterval(timerInterval);
-    // Save session
-    const user={phone:PHONE, loggedIn:true, loginTime:Date.now()};
-    localStorage.setItem('mtr_user', JSON.stringify(user));
-    // Show success
+    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,phone:PHONE,uid:result.user.uid,loginTime:Date.now()}));
     showScreen('screen-success');
     animateDots();
-    // Redirect to cart after brief success moment
-    setTimeout(()=>{ const next=new URLSearchParams(location.search).get('next')||'cart.html'; location.href=next; }, 2000);
-  } else {
-    // ❌ Wrong OTP
-    [0,1,2,3].forEach(i=>{
-      const b=document.getElementById('otp'+i);
-      b.classList.add('error');
-      setTimeout(()=>b.classList.remove('error'),600);
-    });
+    setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
+  }catch(e){
+    btn.disabled=false; btn.innerHTML='Verify &amp; Continue 🔒';
+    [0,1,2,3].forEach(i=>{const b=document.getElementById('otp'+i);b.classList.add('error');setTimeout(()=>b.classList.remove('error'),600);});
     document.getElementById('otp-hint').innerHTML='<span style="color:var(--red)">Incorrect OTP. Please try again.</span>';
     document.getElementById('otp0').focus();
   }
 }
 
+// ── Google Sign-In ──
+async function googleSignIn(){
+  try{
+    const result=await window.fbGoogleSignIn(window.firebaseAuth, new window.GoogleAuthProvider());
+    localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,email:result.user.email,uid:result.user.uid,loginTime:Date.now()}));
+    showScreen('screen-success');
+    document.getElementById('success-name').textContent='Welcome, '+result.user.displayName.split(' ')[0]+'!';
+    animateDots();
+    setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
+  }catch(e){
+    if(e.code!=='auth/popup-closed-by-user') showToast('Google sign-in failed. Try again.');
+  }
+}
+
 // ── Resend timer ──
 function startTimer(){
-  clearInterval(timerInterval);
-  let secs=30;
-  const timerEl=document.getElementById('timer');
-  const btn=document.getElementById('resend-btn');
-  btn.disabled=true;
-  timerEl.textContent=secs+'s';
-  timerInterval=setInterval(()=>{
-    secs--;
-    timerEl.textContent=secs+'s';
-    if(secs<=0){
-      clearInterval(timerInterval);
-      btn.disabled=false;
-      btn.innerHTML='Resend OTP';
-    }
-  },1000);
+  clearInterval(timerInterval);let secs=30;
+  const timerEl=document.getElementById('timer');const btn=document.getElementById('resend-btn');
+  btn.disabled=true;timerEl.textContent=secs+'s';
+  timerInterval=setInterval(()=>{secs--;timerEl.textContent=secs+'s';if(secs<=0){clearInterval(timerInterval);btn.disabled=false;btn.innerHTML='Resend OTP';}},1000);
 }
-function resendOTP(){ sendOTP(); showToast('New OTP sent'); }
-
-// ── Navigation ──
-function backToPhone(){
-  clearInterval(timerInterval);
-  showScreen('screen-phone');
-}
-
-function guestCheckout(){
-  localStorage.setItem('mtr_user', JSON.stringify({guest:true, loginTime:Date.now()}));
-  const next=new URLSearchParams(location.search).get('next')||'cart.html'; location.href=next;
-}
-
-// ── Success dots animation ──
-function animateDots(){
-  let n=0;
-  const el=document.getElementById('success-dots');
-  setInterval(()=>{ el.textContent='.'.repeat((n++%3)+1); },400);
-}
+function resendOTP(){sendOTP();}
+function backToPhone(){clearInterval(timerInterval);showScreen('screen-phone');}
+function guestCheckout(){localStorage.setItem('mtr_user',JSON.stringify({guest:true,loginTime:Date.now()}));const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;}
+function animateDots(){let n=0;const el=document.getElementById('success-dots');setInterval(()=>{el.textContent='.'.repeat((n++%3)+1);},400);}
 
 // ── Auto-redirect if already logged in ──
-(function(){
-  const u=JSON.parse(localStorage.getItem('mtr_user')||'null');
-  // Session valid for 24 hours
-  if(u&&u.loggedIn&&(Date.now()-u.loginTime)<86400000){
-    const next=new URLSearchParams(location.search).get('next')||'cart.html'; location.href=next;
-  }
-})();
+(function(){const u=JSON.parse(localStorage.getItem('mtr_user')||'null');if(u&&u.loggedIn&&(Date.now()-u.loginTime)<86400000){const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;}})();
+</script>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  const firebaseConfig = {
+    apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
+    authDomain: "maathruthva.firebaseapp.com",
+    projectId: "maathruthva",
+    storageBucket: "maathruthva.firebasestorage.app",
+    messagingSenderId: "772318181453",
+    appId: "1:772318181453:web:e736b87f53c264b8cf8404"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  // Invisible reCAPTCHA on send-otp button
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'btn-send-otp', { size: 'invisible' });
+  window.firebaseAuth = auth;
+  window.fbSignInWithPhone = signInWithPhoneNumber;
+  window.fbGoogleSignIn = signInWithPopup;
+  window.GoogleAuthProvider = GoogleAuthProvider;
+  // Auto-redirect if Firebase session active
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      localStorage.setItem('mtr_user', JSON.stringify({loggedIn:true, uid:user.uid, email:user.email||'', phone:user.phoneNumber||'', loginTime:Date.now()}));
+      const next = new URLSearchParams(location.search).get('next') || 'cart.html';
+      location.href = next;
+    }
+  });
 </script>
 </body>
 </html>
