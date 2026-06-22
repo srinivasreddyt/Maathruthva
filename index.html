@@ -31,6 +31,7 @@
   .nav-actions{display:flex;gap:14px;align-items:center;flex-shrink:0;}
   .icon-btn{background:none;border:none;color:var(--ink-soft);font-size:.8rem;letter-spacing:.06em;white-space:nowrap;}
   .nav-greeting{font-size:.8rem;color:var(--sage-deep);letter-spacing:.04em;margin-right:4px;white-space:nowrap;}
+  .mobile-greeting{display:none;text-align:center;font-size:.8rem;color:var(--sage-deep);letter-spacing:.04em;padding:5px 0 6px;border-top:1px solid rgba(138,122,80,.12);background:rgba(247,242,231,.97);}
   .cart-pill{background:var(--sage);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;border:none;font-weight:500;transition:background .2s;white-space:nowrap;flex-shrink:0;}
   .cart-pill:hover{background:var(--sage-deep);}
   .menu-toggle{display:none;background:none;border:none;font-size:1.6rem;line-height:1;color:var(--sage-deep);width:40px;height:40px;border-radius:10px;flex-shrink:0;align-items:center;justify-content:center;}
@@ -142,13 +143,13 @@
   }
   @media(max-width:560px){
     .wrap{padding:0 20px;} .nav{gap:8px;height:62px;} .nav-left{gap:6px;}
-    .brand-logo{width:38px;height:38px;} .brand-wordmark{height:28px;}
+    .brand-logo{width:38px;height:38px;} .brand-wordmark{height:28px;} .mobile-greeting{display:block;} .nav-greeting{display:none;}
     .cat-grid,.prod-grid{grid-template-columns:1fr;}
     .foot-grid{grid-template-columns:1fr;text-align:center;}
     .foot-about{margin:0 auto;} .foot-bottom{justify-content:center;text-align:center;}
     .sub-form{flex-direction:column;} .hero h1{font-size:2.4rem;} .sec-title{font-size:2rem;}
     .values .wrap{gap:24px;}
-    .values .wrap{gap:24px;} .nav-greeting{display:none;}
+    .values .wrap{gap:24px;}
   @media(max-width:380px){
     .brand-logo{width:34px;height:34px;} .brand-wordmark{height:25px;}
   }
@@ -263,6 +264,7 @@
     <a href="#values" onclick="closeMenu()">Why Us</a>
     <a href="#contact" onclick="closeMenu()">Contact</a>
   </nav>
+  <div class="mobile-greeting" id="mobile-greeting"></div>
 </header>
 
 <section class="hero">
@@ -469,13 +471,13 @@
   var u = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   var loggedIn = u && (u.loggedIn || u.guest) && (Date.now() - u.loginTime) < 86400000;
   var nav = document.getElementById('nav-actions');
+
   if (loggedIn) {
-    nav.innerHTML =
-      '<span class="nav-greeting">Hi, ' + (u.name ? u.name.split(' ')[0] : 'there') + '</span>' +
-      '<button class="cart-pill" onclick="location.href=\'cart.html\'">🛒 Cart</button>';
+    var greeting = 'Hi, ' + (u.name ? u.name.split(' ')[0] : 'there') + '!';
+    nav.innerHTML = '<span class="nav-greeting">' + greeting + '</span><button class="cart-pill" onclick="location.href=\x27cart.html\x27">🛒 Cart</button>';
+    var mg = document.getElementById('mobile-greeting'); if(mg) mg.textContent = greeting;
   } else {
     nav.innerHTML = '<button class="cart-pill" onclick="location.href=\x27login.html\x27">Login</button>';
-
   }
 })();
 </script>
