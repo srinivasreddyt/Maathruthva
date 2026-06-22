@@ -666,6 +666,11 @@ async function goToAddress(){
     }
   }
   renderAddresses();
+  // No saved addresses — open the add-address form directly
+  if(!addresses.length){
+    document.getElementById('addr-form').classList.add('open');
+    setTimeout(()=>{ const f=document.getElementById('f-name'); if(f) f.focus(); }, 100);
+  }
 }
 
 function backToCart(){
