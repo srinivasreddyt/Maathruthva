@@ -484,7 +484,13 @@ if(_params.get('buynow')==='1'){
   history.replaceState({}, '', 'cart.html');
 } else {
   cart = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
-  if(!cart.length) cart = [{id:1,qty:1},{id:2,qty:1},{id:3,qty:1}];
+  // normalise items saved by product pages: {name,qty,price} → {id,qty}
+  var nameToId = {'Natural Baby Food Mix':1,'Growth Mix':2,'Daily Millet Mix':3};
+  cart = cart.map(function(c){
+    if(c.id) return c;
+    var base = (c.name||'').replace(/ \(.*\)/,'');
+    return {id: nameToId[base]||0, qty: c.qty||1};
+  }).filter(function(c){return c.id>0;});
 }
 
 // ── Saved addresses ──
