@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -429,7 +429,7 @@ async function verifyOTP(){
       localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name:existingUser.name,phone:PHONE,uid,loginTime:Date.now()}));
       showScreen('screen-success');
       animateDots();
-      setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
+      setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;},2000);
     } else {
       // New user — collect name
       window._pendingUid=uid;
@@ -454,7 +454,7 @@ async function submitName(){
   if(window.saveUserToFirestore) await window.saveUserToFirestore(uid,name,'+91'+PHONE);
   showScreen('screen-success');
   animateDots();
-  setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
+  setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;},2000);
 }
 
 // ── Google Sign-In ──
@@ -465,7 +465,7 @@ async function googleSignIn(){
     showScreen('screen-success');
     document.getElementById('success-name').textContent='Welcome, '+result.user.displayName.split(' ')[0]+'!';
     animateDots();
-    setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;},2000);
+    setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;},2000);
   }catch(e){
     if(e.code!=='auth/popup-closed-by-user') showToast('Google sign-in failed. Try again.');
   }
@@ -480,11 +480,11 @@ function startTimer(){
 }
 function resendOTP(){sendOTP();}
 function backToPhone(){clearInterval(timerInterval);showScreen('screen-phone');}
-function guestCheckout(){localStorage.setItem('mtr_user',JSON.stringify({guest:true,loginTime:Date.now()}));const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;}
+function guestCheckout(){localStorage.setItem('mtr_user',JSON.stringify({guest:true,loginTime:Date.now()}));const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;}
 function animateDots(){let n=0;const el=document.getElementById('success-dots');setInterval(()=>{el.textContent='.'.repeat((n++%3)+1);},400);}
 
 // ── Auto-redirect if already logged in ──
-(function(){const u=JSON.parse(localStorage.getItem('mtr_user')||'null');if(u&&u.loggedIn&&(Date.now()-u.loginTime)<86400000){const next=new URLSearchParams(location.search).get('next')||'cart.html';location.href=next;}})();
+(function(){const u=JSON.parse(localStorage.getItem('mtr_user')||'null');if(u&&u.loggedIn&&(Date.now()-u.loginTime)<86400000){const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;}})();
 </script>
 
 <script type="module">
@@ -535,7 +535,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   onAuthStateChanged(auth, (user) => {
     if (user && initialCheck && !window._otpVerifying) {
       localStorage.setItem('mtr_user', JSON.stringify({loggedIn:true, uid:user.uid, email:user.email||'', phone:user.phoneNumber||'', loginTime:Date.now()}));
-      const next = new URLSearchParams(location.search).get('next') || 'cart.html';
+      const next = new URLSearchParams(location.search).get('next') || 'index.html';
       location.href = next;
     }
     initialCheck = false;
@@ -543,3 +543,4 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 </script>
 </body>
 </html>
+
