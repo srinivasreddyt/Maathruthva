@@ -463,17 +463,29 @@
 </script>
 
 <script>
+function logoutUser(){
+  localStorage.removeItem('mtr_user');
+  localStorage.removeItem('mtr_cart');
+  localStorage.removeItem('mtr_addresses');
+  location.href='index.html';
+}
 (function(){
   var u = localStorage.getItem('mtr_user');
   var nav = document.getElementById('nav-actions');
   var mob = document.getElementById('mobile-greeting');
   var cartItems = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
   var cartCount = cartItems.length;
+  var greetHtml = function(name){
+    return '<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;">'
+      +'<span class="nav-greeting" style="margin-bottom:2px;">Hi, '+name+'</span>'
+      +'<span style="font-size:11px;color:#888;">Not you? <u style="cursor:pointer;color:#5a3e28;" onclick="logoutUser()">Logout</u></span>'
+      +'</div>';
+  };
   if(u){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = '<span class="nav-greeting">Hi, '+name+'</span><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
