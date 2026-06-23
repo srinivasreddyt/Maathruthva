@@ -319,7 +319,7 @@
             <button onclick="backToCart()" style="background:none;border:none;font-size:.78rem;color:var(--sage-deep);font-weight:500;letter-spacing:.04em;cursor:pointer;">← Back to Cart</button>
           </div>
           <div class="addr-list" id="addr-list"></div>
-          <button class="add-addr-btn" onclick="toggleAddressForm()">
+          <button class="add-addr-btn" id="add-addr-btn" onclick="toggleAddressForm()" style="display:none">
             <span style="font-size:1.1rem;">+</span> Add a new address
           </button>
           <div class="addr-form" id="addr-form">
@@ -345,7 +345,7 @@
             </div>
             <div class="form-actions">
               <button class="btn-save" id="btn-save-addr" onclick="saveAddress()">Save & Use this address</button>
-              <button class="btn-cancel" onclick="cancelAddressForm()">Cancel</button>
+              <button class="btn-cancel" id="btn-cancel-addr" onclick="cancelAddressForm()" style="display:none">Cancel</button>
             </div>
           </div>
         </div>
@@ -620,8 +620,8 @@ function applyPromo(){
 // ── Address ──
 function renderAddresses(){
   const list = document.getElementById('addr-list');
-  const addBtn = document.querySelector('.add-addr-btn');
-  const cancelBtn = document.querySelector('.btn-cancel');
+  const addBtn = document.getElementById('add-addr-btn');
+  const cancelBtn = document.getElementById('btn-cancel-addr');
   if(!addresses.length){
     list.innerHTML = '';
     if(addBtn) addBtn.style.display = 'none';
@@ -657,8 +657,8 @@ function toggleAddressForm(){
   document.getElementById('btn-save-addr').textContent='Save & Use this address';
   const form=document.getElementById('addr-form');
   const list=document.getElementById('addr-list');
-  const addBtn=document.querySelector('.add-addr-btn');
-  const cancelBtn=document.querySelector('.btn-cancel');
+  const addBtn=document.getElementById('add-addr-btn');
+  const cancelBtn=document.getElementById('btn-cancel-addr');
   form.classList.add('open');
   if(list) list.style.display='none';
   if(addBtn) addBtn.style.display='none';
@@ -670,8 +670,8 @@ function cancelAddressForm(){
   document.getElementById('btn-save-addr').textContent='Save & Use this address';
   document.getElementById('addr-form').classList.remove('open');
   const list=document.getElementById('addr-list');
-  const addBtn=document.querySelector('.add-addr-btn');
-  const cancelBtn=document.querySelector('.btn-cancel');
+  const addBtn=document.getElementById('add-addr-btn');
+  const cancelBtn=document.getElementById('btn-cancel-addr');
   if(list) list.style.display='';
   if(addBtn) addBtn.style.display='';
   if(cancelBtn) cancelBtn.style.display='none';
@@ -758,7 +758,7 @@ async function saveAddress(){
   ['f-name','f-phone','f-pin','f-addr1','f-addr2','f-city'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-state').value='';
   const _list=document.getElementById('addr-list');
-  const _addBtn=document.querySelector('.add-addr-btn');
+  const _addBtn=document.getElementById('add-addr-btn');
   if(_list) _list.style.display='';
   if(_addBtn) _addBtn.style.display='';
   renderAddresses();
@@ -793,8 +793,8 @@ async function goToAddress(){
   // No saved addresses — open the add-address form directly, hide add-btn and cancel
   if(!addresses.length){
     document.getElementById('addr-form').classList.add('open');
-    const addBtn=document.querySelector('.add-addr-btn');
-    const cancelBtn=document.querySelector('.btn-cancel');
+    const addBtn=document.getElementById('add-addr-btn');
+    const cancelBtn=document.getElementById('btn-cancel-addr');
     if(addBtn) addBtn.style.display='none';
     if(cancelBtn) cancelBtn.style.display='none';
     setTimeout(()=>{ const f=document.getElementById('f-name'); if(f) f.focus(); }, 100);
