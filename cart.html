@@ -540,7 +540,7 @@ function renderCart(){
       <p>Add some wholesome baby food to get started.</p>
       <button class="btn-shop" onclick="location.href='Food_Products.html'">Shop Now</button>
     </div>`;
-    updateSummary(); return;
+    updateSummary(); saveCart(); return;
   }
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
