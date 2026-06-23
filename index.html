@@ -31,8 +31,27 @@
   .nav-actions{display:flex;gap:14px;align-items:center;flex-shrink:0;}
   .nav-greeting{font-size:14px;color:#5a3e28;font-weight:500;}
   .icon-btn{background:none;border:none;color:var(--ink-soft);font-size:.8rem;letter-spacing:.06em;white-space:nowrap;}
-  .cart-pill{background:var(--sage);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;border:none;font-weight:500;transition:background .2s;white-space:nowrap;flex-shrink:0;}
+  .cart-pill{background:var(--sage);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;border:none;font-weight:500;transition:background .2s;white-space:nowrap;flex-shrink:0;cursor:pointer;}
   .cart-pill:hover{background:var(--sage-deep);}
+  /* cart drawer */
+  .overlay{position:fixed;inset:0;background:rgba(47,40,20,.45);opacity:0;visibility:hidden;transition:.3s;z-index:900;}
+  .overlay.open{opacity:1;visibility:visible;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:380px;max-width:90vw;background:var(--paper);box-shadow:-4px 0 24px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);z-index:901;display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:24px;border-bottom:1px solid rgba(138,122,80,.18);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-head h3{font-size:1.5rem;color:var(--sage-dark);font-family:'Cormorant Garamond',serif;}
+  .drawer-close{background:none;border:none;font-size:1.5rem;color:var(--ink-soft);cursor:pointer;}
+  .drawer-body{flex:1;overflow-y:auto;padding:20px 24px;}
+  .cart-line{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid rgba(138,122,80,.12);align-items:center;}
+  .cart-icon{width:54px;height:54px;border-radius:10px;background:var(--cream,#f5f0e8);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;}
+  .cart-line-info{flex:1;}.cart-line-info .nm{font-size:.92rem;font-weight:500;}
+  .cart-line-info .mt{font-size:.78rem;color:var(--olive);}
+  .cart-empty{text-align:center;color:var(--olive);padding:50px 20px;font-size:.95rem;}
+  .drawer-foot{padding:24px;border-top:1px solid rgba(138,122,80,.18);}
+  .drawer-total{display:flex;justify-content:space-between;margin-bottom:16px;font-size:1.05rem;}
+  .drawer-total strong{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--sage-dark);}
+  .checkout-btn{width:100%;background:var(--sage-deep);color:var(--paper);border:none;padding:15px;border-radius:10px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+  .checkout-btn:hover{background:var(--sage-dark);}
   .menu-toggle{display:none;background:none;border:none;font-size:1.6rem;line-height:1;color:var(--sage-deep);width:40px;height:40px;border-radius:10px;flex-shrink:0;align-items:center;justify-content:center;}
   .mobile-menu{display:none;flex-direction:column;background:var(--paper);border-bottom:1px solid rgba(138,122,80,.18);overflow:hidden;max-height:0;transition:max-height .32s ease;}
   .mobile-menu.open{max-height:420px;}
@@ -484,7 +503,7 @@ function logoutUser(){
   var nav = document.getElementById('nav-actions');
   var mob = document.getElementById('mobile-greeting');
   var cartItems = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
-  var cartCount = cartItems.length;
+  var cartCount = cartItems.reduce(function(s,i){return s+(i.qty||1);},0);
   var greetHtml = function(name){
     return '<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;">'
       +'<span class="nav-greeting" style="margin-bottom:2px;">Hi, '+name+'</span>'
@@ -495,20 +514,65 @@ function logoutUser(){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="openCart()">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
       }
     }catch(e){
-      nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = '<button class="cart-pill" onclick="openCart()">Cart ('+cartCount+')</button>';
     }
   } else if(cartCount > 0){
-    nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+    nav.innerHTML = '<button class="cart-pill" onclick="openCart()">Cart ('+cartCount+')</button>';
   } else {
     nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
   }
 })();
+
+function openCart(){
+  renderCartDrawer();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeCart(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+function renderCartDrawer(){
+  var items = JSON.parse(localStorage.getItem('mtr_cart')||'[]');
+  var body = document.getElementById('drawer-body');
+  var total = 0;
+  var icons = {'Natural Baby Food Mix':'🌿','Growth Mix':'🌱','Daily Millet Mix':'🌾'};
+  if(!items.length){
+    body.innerHTML='<div class="cart-empty">Your cart is empty.<br>Add a formula to get started.</div>';
+    document.getElementById('cart-total').textContent='₹0';
+    return;
+  }
+  body.innerHTML = items.map(function(item){
+    var base = (item.name||'').replace(/ \(.*\)/,'');
+    var icon = icons[base]||'🛒';
+    var subtotal = (item.price||0)*(item.qty||1);
+    total += subtotal;
+    return '<div class="cart-line">'
+      +'<div class="cart-icon">'+icon+'</div>'
+      +'<div class="cart-line-info">'
+        +'<div class="nm">'+base+'</div>'
+        +'<div class="mt">'+(item.sub||'')+'</div>'
+        +'<div class="mt">Qty: '+(item.qty||1)+' &nbsp;·&nbsp; ₹'+subtotal+'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  document.getElementById('cart-total').textContent='₹'+total;
+}
 </script>
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head"><h3>Your Cart</h3><button class="drawer-close" onclick="closeCart()">×</button></div>
+  <div class="drawer-body" id="drawer-body"><div class="cart-empty">Your cart is empty.</div></div>
+  <div class="drawer-foot">
+    <div class="drawer-total"><span>Subtotal</span><strong id="cart-total">₹0</strong></div>
+    <button class="checkout-btn" onclick="location.href='cart.html'">Proceed to Checkout</button>
+  </div>
+</aside>
 </body>
 </html>
