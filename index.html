@@ -542,23 +542,41 @@ function renderCartDrawer(){
   var items = JSON.parse(localStorage.getItem('mtr_cart')||'[]');
   var body = document.getElementById('drawer-body');
   var total = 0;
-  var icons = {'Natural Baby Food Mix':'🌿','Growth Mix':'🌱','Daily Millet Mix':'🌾'};
+  var PRODS = {
+    1:{name:'Natural Baby Food Mix',price:299,icon:'🌿'},
+    2:{name:'Growth Mix',price:349,icon:'🌱'},
+    3:{name:'Daily Millet Mix',price:349,icon:'🌾'}
+  };
+  var ICONS = {'Natural Baby Food Mix':'🌿','Growth Mix':'🌱','Daily Millet Mix':'🌾'};
   if(!items.length){
     body.innerHTML='<div class="cart-empty">Your cart is empty.<br>Add a formula to get started.</div>';
     document.getElementById('cart-total').textContent='₹0';
     return;
   }
   body.innerHTML = items.map(function(item){
-    var base = (item.name||'').replace(/ \(.*\)/,'');
-    var icon = icons[base]||'🛒';
-    var subtotal = (item.price||0)*(item.qty||1);
+    var name, price, icon, sub, qty;
+    qty = item.qty || 1;
+    if(item.id && PRODS[item.id]){
+      // {id, qty} format (normalized by cart.html)
+      name = PRODS[item.id].name;
+      price = PRODS[item.id].price;
+      icon = PRODS[item.id].icon;
+      sub = '';
+    } else {
+      // {name, qty, price, sub} format (from product pages)
+      name = (item.name||'').replace(/ \(.*\)/,'');
+      price = item.price || 0;
+      icon = ICONS[name] || '🌿';
+      sub = item.sub || '';
+    }
+    var subtotal = price * qty;
     total += subtotal;
     return '<div class="cart-line">'
       +'<div class="cart-icon">'+icon+'</div>'
       +'<div class="cart-line-info">'
-        +'<div class="nm">'+base+'</div>'
-        +'<div class="mt">'+(item.sub||'')+'</div>'
-        +'<div class="mt">Qty: '+(item.qty||1)+' &nbsp;·&nbsp; ₹'+subtotal+'</div>'
+        +'<div class="nm">'+name+'</div>'
+        +(sub ? '<div class="mt">'+sub+'</div>' : '')
+        +'<div class="mt">Qty: '+qty+' &nbsp;·&nbsp; ₹'+subtotal+'</div>'
       +'</div>'
     +'</div>';
   }).join('');
