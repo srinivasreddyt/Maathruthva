@@ -318,13 +318,13 @@
           </button>
           <div class="addr-form" id="addr-form">
             <div class="form-grid">
-              <div class="field form-full"><label>Full Name</label><input type="text" id="f-name" placeholder="Enter full name"></div>
-              <div class="field"><label>Mobile</label><input type="tel" id="f-phone" placeholder="10-digit mobile"></div>
-              <div class="field"><label>Pincode</label><input type="text" id="f-pin" placeholder="Pincode" maxlength="6" oninput="fetchPin(this.value)"></div>
-              <div class="field form-full"><label>Address Line 1</label><input type="text" id="f-addr1" placeholder="House / Flat / Building no."></div>
-              <div class="field form-full"><label>Address Line 2</label><input type="text" id="f-addr2" placeholder="Area / Street / Locality"></div>
-              <div class="field"><label>City</label><input type="text" id="f-city" placeholder="City"></div>
-              <div class="field"><label>State</label>
+              <div class="field form-full"><label>Full Name <span style="color:red">*</span></label><input type="text" id="f-name" placeholder="Enter full name"></div>
+              <div class="field"><label>Mobile <span style="color:red">*</span></label><input type="tel" id="f-phone" placeholder="10-digit mobile" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div class="field"><label>Pincode <span style="color:red">*</span></label><input type="text" id="f-pin" placeholder="6-digit pincode" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'');fetchPin(this.value)"></div>
+              <div class="field form-full"><label>Address Line 1 <span style="color:red">*</span></label><input type="text" id="f-addr1" placeholder="House / Flat / Building no."></div>
+              <div class="field form-full"><label>Address Line 2</label><input type="text" id="f-addr2" placeholder="Area / Street / Locality (optional)"></div>
+              <div class="field"><label>City <span style="color:red">*</span></label><input type="text" id="f-city" placeholder="City"></div>
+              <div class="field"><label>State <span style="color:red">*</span></label>
                 <select id="f-state">
                   <option value="">Select state</option>
                   <option>Andhra Pradesh</option><option>Telangana</option><option>Tamil Nadu</option>
@@ -623,7 +623,9 @@ async function saveAddress(){
   const addr1=document.getElementById('f-addr1').value.trim();
   const city=document.getElementById('f-city').value.trim();
   const state=document.getElementById('f-state').value;
-  if(!name||!phone||!pin||!addr1||!city||!state){ showToast('Please fill all required fields'); return; }
+  if(!name||!phone||!pin||!addr1||!city||!state){ showToast('Please fill all required fields (*)'); return; }
+  if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter a valid 10-digit Indian mobile number (starts with 6–9)'); return; }
+  if(!/^[1-9]\d{5}$/.test(pin)){ showToast('Enter a valid 6-digit Indian pincode'); return; }
   const newAddr={id:Date.now(),name,phone,pin,addr1,addr2:document.getElementById('f-addr2').value.trim(),city,state,type:document.getElementById('f-type').value};
   // Save to Firestore if user is logged in
   const user=JSON.parse(localStorage.getItem('mtr_user')||'null');
