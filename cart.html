@@ -295,7 +295,7 @@
 
 <!-- Main -->
 <div class="page">
-  <div class="wrap page-grid">
+  <div class="wrap page-grid" id="page-grid">
 
     <!-- LEFT COLUMN -->
     <div>
@@ -534,6 +534,7 @@ function renderCart(){
   document.getElementById('cart-item-count').textContent = active.length + ' item' + (active.length!==1?'s':'');
   
   const summaryCol = document.getElementById('order-summary-col');
+  const pageGrid = document.getElementById('page-grid');
   if(!active.length){
     list.innerHTML = `<div class="empty-cart">
       <div class="ic">🛒</div>
@@ -542,9 +543,11 @@ function renderCart(){
       <button class="btn-shop" onclick="location.href='Food_Products.html'">Shop Now</button>
     </div>`;
     if(summaryCol) summaryCol.style.display = 'none';
+    if(pageGrid){ pageGrid.style.gridTemplateColumns = '1fr'; pageGrid.style.maxWidth = '640px'; pageGrid.style.margin = '0 auto'; }
     updateSummary(); saveCart(); return;
   }
   if(summaryCol) summaryCol.style.display = '';
+  if(pageGrid){ pageGrid.style.gridTemplateColumns = ''; pageGrid.style.maxWidth = ''; pageGrid.style.margin = ''; }
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
     if(!p) return '';
