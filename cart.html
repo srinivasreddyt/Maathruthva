@@ -859,7 +859,10 @@ function initPayment(){
 function closeModal(){ document.getElementById('success-modal').classList.remove('open'); }
 let tt; function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
 
-// -- Init --
+// Render cart immediately from localStorage
+renderCart();
+
+// Set up Firestore save in background
 (async function(){
   const _user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   if (_user && _user.uid) {
@@ -880,7 +883,6 @@ let tt; function showToast(m){const t=document.getElementById('toast');t.textCon
       if(window._cartPending){ window.saveCartToFirestore(window._cartPending); window._cartPending=null; }
     } catch(e) { console.error('Cart Firestore init:', e); }
   }
-  renderCart();
 })();
 </script>
 
