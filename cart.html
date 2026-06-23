@@ -475,12 +475,6 @@
       return snap.exists() ? (snap.data().items || []) : [];
     } catch(e) { console.error('Fetch cart error:', e); return []; }
   };
-
-  window.saveCartToFirestore = async function(uid, items) {
-    try {
-      await setDoc(doc(db, 'users', uid, 'cartData', 'items'), { items, updatedAt: serverTimestamp() });
-    } catch(e) { console.error('Save cart error:', e); }
-  };
 </script>
 
 <script>
@@ -865,33 +859,25 @@ function initPayment(){
 function closeModal(){ document.getElementById('success-modal').classList.remove('open'); }
 let tt; function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
 
-// ── Init ──
+// -- Init --
 (async function(){
   const _user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   if (_user && _user.uid) {
     try {
       const {initializeApp, getApps} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-      const {getFirestore, doc, getDoc, setDoc, serverTimestamp} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const {getAuth, onAuthStateChanged} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const {getFirestore, doc, setDoc, serverTimestamp} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const _cfg = {apiKey:'AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU',authDomain:'maathruthva.firebaseapp.com',projectId:'maathruthva',storageBucket:'maathruthva.firebasestorage.app',messagingSenderId:'772318181453',appId:'1:772318181453:web:e736b87f53c264b8cf8404'};
       const _app = getApps().length ? getApps()[0] : initializeApp(_cfg);
       const _db = getFirestore(_app);
-      const _ref = doc(_db, 'users', _user.uid, 'cartData', 'items');
+      const _auth = getAuth(_app);
+      const _fbUser = await new Promise(r=>{const u=onAuthStateChanged(_auth,user=>{u();r(user);});});
+      const _uid = _fbUser ? _fbUser.uid : _user.uid;
+      const _ref = doc(_db, 'users', _uid, 'cartData', 'items');
       window.saveCartToFirestore = async function(items) {
-        try { await setDoc(_ref, {items, updatedAt: serverTimestamp()}); } catch(e) { console.error('Cart save:', e); }
+        try { await setDoc(_ref, {items, updatedAt: serverTimestamp()}); console.log('[Cart] Saved OK'); } catch(e) { console.error('[Cart] Save error:', e); }
       };
-      const _snap = await getDoc(_ref);
-      if (_snap.exists()) {
-        const _fsItems = _snap.data().items || [];
-        const _nameToId = {'Natural Baby Food Mix':1,'Growth Mix':2,'Daily Millet Mix':3};
-        const _localIds = new Set(cart.map(c => c.id));
-        let _changed = false;
-        _fsItems.forEach(function(item){
-          const _base = (item.name||'').replace(/ \(.*\)/,'');
-          const _id = _nameToId[_base] || item.id || 0;
-          if (_id && !_localIds.has(_id)) { cart.push({id:_id, qty:item.qty||1}); _localIds.add(_id); _changed = true; }
-        });
-        if (_changed) localStorage.setItem('mtr_cart', JSON.stringify(cart));
-      }
+      if(window._cartPending){ window.saveCartToFirestore(window._cartPending); window._cartPending=null; }
     } catch(e) { console.error('Cart Firestore init:', e); }
   }
   renderCart();

@@ -527,18 +527,13 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 
   window.mergeCartOnLogin = async function(uid) {
     try {
-      const local = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
       const snap = await getDoc(doc(db, 'users', uid, 'cartData', 'items'));
-      if (snap.exists()) {
-        const fsItems = snap.data().items || [];
-        const names = new Set(local.map(i => i.name));
-        fsItems.forEach(item => { if (item.name && !names.has(item.name)) local.push(item); });
+      if (snap.exists() && snap.data().items && snap.data().items.length) {
+        // Firestore is source of truth on login — overwrite localStorage
+        localStorage.setItem('mtr_cart', JSON.stringify(snap.data().items));
       }
-      localStorage.setItem('mtr_cart', JSON.stringify(local));
-      if (local.length) {
-        await setDoc(doc(db, 'users', uid, 'cartData', 'items'), { items: local, updatedAt: serverTimestamp() });
-      }
-    } catch(e) { console.error('Cart merge on login:', e); }
+      // If Firestore is empty, keep whatever is in localStorage (guest-added items)
+    } catch(e) { console.error('Cart fetch on login:', e); }
   };
 
   window.saveCartToFirestore = async function(uid, items) {
