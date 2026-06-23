@@ -429,7 +429,7 @@ async function verifyOTP(){
       localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name:existingUser.name,phone:PHONE,uid,loginTime:Date.now()}));
       showScreen('screen-success');
       animateDots();
-      setTimeout(()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';location.href=next;},2000);
+      setTimeout(async()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';if(window.mergeCartOnLogin)await window.mergeCartOnLogin(uid);location.href=next;},2000);
     } else {
       // New user — collect name
       window._pendingUid=uid;
@@ -525,6 +525,25 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Fetch user error:', e); return null; }
   };
 
+  window.mergeCartOnLogin = async function(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid, 'cartData', 'items'));
+      if (snap.exists()) {
+        const fsItems = snap.data().items || [];
+        const local = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
+        const names = new Set(local.map(i => i.name));
+        fsItems.forEach(item => { if (item.name && !names.has(item.name)) local.push(item); });
+        if (fsItems.length) localStorage.setItem('mtr_cart', JSON.stringify(local));
+      }
+    } catch(e) { console.error('Cart merge on login:', e); }
+  };
+
+  window.saveCartToFirestore = async function(uid, items) {
+    try {
+      await setDoc(doc(db, 'users', uid, 'cartData', 'items'), { items, updatedAt: serverTimestamp() });
+    } catch(e) { console.error('Cart save error:', e); }
+  };
+
   // Expose a single wrapper so regular scripts never touch auth/RecaptchaVerifier directly
   window.sendOTPFirebase = async function(phone) {
     if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
@@ -562,6 +581,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
           loginTime: existing.loginTime || Date.now()
         }));
         const next = new URLSearchParams(location.search).get('next') || 'index.html';
+        if (window.mergeCartOnLogin) await window.mergeCartOnLogin(user.uid);
         location.href = next;
       }
       initialCheck = false;
