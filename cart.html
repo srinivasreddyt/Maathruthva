@@ -649,13 +649,21 @@ function toggleAddressForm(){
   delete window._editAddrIndex;
   document.getElementById('btn-save-addr').textContent='Save & Use this address';
   const form=document.getElementById('addr-form');
-  form.classList.toggle('open');
-  if(form.classList.contains('open')) document.getElementById('f-name').focus();
+  const list=document.getElementById('addr-list');
+  const addBtn=document.querySelector('.add-addr-btn');
+  form.classList.add('open');
+  if(list) list.style.display='none';
+  if(addBtn) addBtn.style.display='none';
+  document.getElementById('f-name').focus();
 }
 function cancelAddressForm(){
   delete window._editAddrIndex;
   document.getElementById('btn-save-addr').textContent='Save & Use this address';
   document.getElementById('addr-form').classList.remove('open');
+  const list=document.getElementById('addr-list');
+  const addBtn=document.querySelector('.add-addr-btn');
+  if(list) list.style.display='';
+  if(addBtn) addBtn.style.display='';
 }
 
 function editAddress(i){
@@ -738,6 +746,10 @@ async function saveAddress(){
   document.getElementById('addr-form').classList.remove('open');
   ['f-name','f-phone','f-pin','f-addr1','f-addr2','f-city'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-state').value='';
+  const _list=document.getElementById('addr-list');
+  const _addBtn=document.querySelector('.add-addr-btn');
+  if(_list) _list.style.display='';
+  if(_addBtn) _addBtn.style.display='';
   renderAddresses();
 }
 
