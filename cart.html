@@ -585,7 +585,16 @@ function removeItem(id){
   cart = cart.filter(c=>c.id!==id);
   showToast('Item removed'); renderCart();
 }
-function saveCart(){ localStorage.setItem('mtr_cart', JSON.stringify(cart)); }
+function saveCart(){
+  localStorage.setItem('mtr_cart', JSON.stringify(cart));
+  if(window.saveCartToFirestore){
+    var fsItems=cart.map(function(c){
+      var p=PRODUCTS.find(function(x){return x.id===c.id;});
+      return p?{name:p.name,qty:c.qty,price:p.price,sub:p.meta||''}:{id:c.id,qty:c.qty};
+    });
+    window.saveCartToFirestore(fsItems);
+  }
+}
 
 // ── Summary ──
 function updateSummary(){
