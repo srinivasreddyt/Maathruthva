@@ -467,7 +467,7 @@ function logoutUser(){
   localStorage.removeItem('mtr_user');
   localStorage.removeItem('mtr_cart');
   localStorage.removeItem('mtr_addresses');
-  location.href='index.html';
+  location.href='login.html?action=logout';
 }
 (function(){
   var u = localStorage.getItem('mtr_user');

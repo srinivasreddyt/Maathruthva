@@ -540,33 +540,33 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     return signInWithPopup(auth, provider);
   };
 
-  // Auto-redirect only on page load (not during active OTP verification)
-  let initialCheck = true;
-  onAuthStateChanged(auth, async (user) => {
-    if (user && initialCheck && !window._otpVerifying) {
-      // If our app session was cleared (user logged out), sign out of Firebase too
-      if (!localStorage.getItem('mtr_user')) {
-        initialCheck = false;
-        await signOut(auth);
-        return;
+  // Handle explicit logout: sign out Firebase then go home
+  if(new URLSearchParams(location.search).get('action') === 'logout') {
+    history.replaceState({}, '', 'login.html');
+    signOut(auth).finally(() => { location.href = 'index.html'; });
+  } else {
+    // Auto-redirect only on page load (not during active OTP verification)
+    let initialCheck = true;
+    onAuthStateChanged(auth, async (user) => {
+      if (user && initialCheck && !window._otpVerifying) {
+        // Refresh localStorage with latest name from Firebase
+        const existing = JSON.parse(localStorage.getItem('mtr_user') || '{}');
+        const name = user.displayName || existing.name || '';
+        localStorage.setItem('mtr_user', JSON.stringify({
+          ...existing,
+          loggedIn: true,
+          uid: user.uid,
+          email: user.email || existing.email || '',
+          phone: user.phoneNumber || existing.phone || '',
+          name: name,
+          loginTime: existing.loginTime || Date.now()
+        }));
+        const next = new URLSearchParams(location.search).get('next') || 'index.html';
+        location.href = next;
       }
-      // Refresh localStorage with latest name from Firebase (fixes "Hi, User" issue)
-      const existing = JSON.parse(localStorage.getItem('mtr_user') || '{}');
-      const name = user.displayName || existing.name || '';
-      localStorage.setItem('mtr_user', JSON.stringify({
-        ...existing,
-        loggedIn: true,
-        uid: user.uid,
-        email: user.email || existing.email || '',
-        phone: user.phoneNumber || existing.phone || '',
-        name: name,
-        loginTime: existing.loginTime || Date.now()
-      }));
-      const next = new URLSearchParams(location.search).get('next') || 'index.html';
-      location.href = next;
-    }
-    initialCheck = false;
-  });
+      initialCheck = false;
+    });
+  }
 </script>
 </body>
 </html>
