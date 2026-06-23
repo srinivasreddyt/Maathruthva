@@ -522,8 +522,6 @@ function logoutUser(){
     }catch(e){
       nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
     }
-  } else if(cartCount > 0){
-    nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
   } else {
     nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
   }
@@ -543,11 +541,11 @@ function renderCartDrawer(){
   var body = document.getElementById('drawer-body');
   var total = 0;
   var PRODS = {
-    1:{name:'Natural Baby Food Mix',price:299,icon:'🌿'},
-    2:{name:'Growth Mix',price:349,icon:'🌱'},
-    3:{name:'Daily Millet Mix',price:349,icon:'🌾'}
+    1:{name:'Natural Baby Food Mix',price:299,icon:'[NB]'},
+    2:{name:'Growth Mix',price:349,icon:'[GM]'},
+    3:{name:'Daily Millet Mix',price:349,icon:'[DM]'}
   };
-  var ICONS = {'Natural Baby Food Mix':'🌿','Growth Mix':'🌱','Daily Millet Mix':'🌾'};
+  var ICONS = {'Natural Baby Food Mix':'[NB]','Growth Mix':'[GM]','Daily Millet Mix':'[DM]'};
   if(!items.length){
     body.innerHTML='<div class="cart-empty">Your cart is empty.<br>Add a formula to get started.</div>';
     document.getElementById('cart-total').textContent='₹0';
