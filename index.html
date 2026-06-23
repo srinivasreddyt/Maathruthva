@@ -514,16 +514,16 @@ function logoutUser(){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="location.href='cart.html'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
       }
     }catch(e){
-      nav.innerHTML = '<button class="cart-pill" onclick="location.href='cart.html'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
     }
   } else if(cartCount > 0){
-    nav.innerHTML = '<button class="cart-pill" onclick="location.href='cart.html'">Cart ('+cartCount+')</button>';
+    nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
   } else {
     nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
   }
