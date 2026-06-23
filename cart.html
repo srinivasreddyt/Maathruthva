@@ -620,10 +620,16 @@ function applyPromo(){
 // ── Address ──
 function renderAddresses(){
   const list = document.getElementById('addr-list');
+  const addBtn = document.querySelector('.add-addr-btn');
+  const cancelBtn = document.querySelector('.btn-cancel');
   if(!addresses.length){
-    list.innerHTML = `<div style="text-align:center;padding:28px 16px;color:var(--ink-soft);font-size:.95rem;">No saved addresses found.</div>`;
+    list.innerHTML = '';
+    if(addBtn) addBtn.style.display = 'none';
+    if(cancelBtn) cancelBtn.style.display = 'none';
     updatePayBtn(); return;
   }
+  if(addBtn) addBtn.style.display = '';
+  if(cancelBtn) cancelBtn.style.display = 'none';
   list.innerHTML = addresses.map((a,i)=>`
     <div class="addr-card${i===selectedAddr?' selected':''}" onclick="selectAddr(${i})">
       <div class="addr-radio"></div>
@@ -652,9 +658,11 @@ function toggleAddressForm(){
   const form=document.getElementById('addr-form');
   const list=document.getElementById('addr-list');
   const addBtn=document.querySelector('.add-addr-btn');
+  const cancelBtn=document.querySelector('.btn-cancel');
   form.classList.add('open');
   if(list) list.style.display='none';
   if(addBtn) addBtn.style.display='none';
+  if(cancelBtn) cancelBtn.style.display='';
   document.getElementById('f-name').focus();
 }
 function cancelAddressForm(){
@@ -663,8 +671,10 @@ function cancelAddressForm(){
   document.getElementById('addr-form').classList.remove('open');
   const list=document.getElementById('addr-list');
   const addBtn=document.querySelector('.add-addr-btn');
+  const cancelBtn=document.querySelector('.btn-cancel');
   if(list) list.style.display='';
   if(addBtn) addBtn.style.display='';
+  if(cancelBtn) cancelBtn.style.display='none';
 }
 
 function editAddress(i){
@@ -780,9 +790,13 @@ async function goToAddress(){
     }
   }
   renderAddresses();
-  // No saved addresses — open the add-address form directly
+  // No saved addresses — open the add-address form directly, hide add-btn and cancel
   if(!addresses.length){
     document.getElementById('addr-form').classList.add('open');
+    const addBtn=document.querySelector('.add-addr-btn');
+    const cancelBtn=document.querySelector('.btn-cancel');
+    if(addBtn) addBtn.style.display='none';
+    if(cancelBtn) cancelBtn.style.display='none';
     setTimeout(()=>{ const f=document.getElementById('f-name'); if(f) f.focus(); }, 100);
   }
 }
