@@ -93,6 +93,12 @@
   .addr-name{font-weight:600;font-size:.94rem;color:var(--ink);margin-bottom:2px;}
   .addr-line{font-size:.84rem;color:var(--ink-soft);margin-bottom:1px;}
   .addr-phone{font-size:.8rem;color:var(--olive);margin-top:4px;}
+  .addr-actions{display:flex;gap:8px;margin-top:10px;}
+  .addr-edit-btn,.addr-del-btn{border:none;border-radius:8px;padding:5px 12px;font-size:.75rem;cursor:pointer;font-weight:500;transition:.2s;}
+  .addr-edit-btn{background:var(--light-sage);color:var(--sage-deep);}
+  .addr-edit-btn:hover{background:var(--sage);color:#fff;}
+  .addr-del-btn{background:#fef2f2;color:#dc2626;}
+  .addr-del-btn:hover{background:#dc2626;color:#fff;}
   .add-addr-btn{margin:0 26px 22px;padding:13px;border:1.5px dashed rgba(138,122,80,.4);border-radius:14px;background:none;width:calc(100% - 52px);color:var(--sage-deep);font-size:.86rem;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;}
   .add-addr-btn:hover{background:var(--light-sage);border-color:var(--sage);}
 
@@ -338,7 +344,7 @@
               </div>
             </div>
             <div class="form-actions">
-              <button class="btn-save" onclick="saveAddress()">Save & Use this address</button>
+              <button class="btn-save" id="btn-save-addr" onclick="saveAddress()">Save & Use this address</button>
               <button class="btn-cancel" onclick="cancelAddressForm()">Cancel</button>
             </div>
           </div>
@@ -418,7 +424,7 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
     authDomain: "maathruthva.firebaseapp.com",
@@ -449,6 +455,18 @@
       const ref = await addDoc(collection(db, 'users', uid, 'addresses'), { ...addr, createdAt: serverTimestamp() });
       return ref.id;
     } catch(e) { console.error('Save address error:', e); return null; }
+  };
+
+  window.updateAddressInFirestore = async function(uid, firestoreId, addr) {
+    try {
+      await updateDoc(doc(db, 'users', uid, 'addresses', firestoreId), { ...addr, updatedAt: serverTimestamp() });
+    } catch(e) { console.error('Update address error:', e); }
+  };
+
+  window.deleteAddressFromFirestore = async function(uid, firestoreId) {
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'addresses', firestoreId));
+    } catch(e) { console.error('Delete address error:', e); }
   };
 </script>
 
@@ -589,6 +607,10 @@ function renderAddresses(){
       <div class="addr-line">${a.addr1}, ${a.addr2}</div>
       <div class="addr-line">${a.city}, ${a.state} — ${a.pin}</div>
       <div class="addr-phone">📱 ${a.phone}</div>
+      <div class="addr-actions">
+        <button class="addr-edit-btn" onclick="event.stopPropagation();editAddress(${i})">✏️ Edit</button>
+        <button class="addr-del-btn" onclick="event.stopPropagation();deleteAddress(${i})">🗑️ Delete</button>
+      </div>
     </div>`).join('');
   updatePayBtn();
 }
@@ -601,11 +623,47 @@ function updatePayBtn(){
 }
 
 function toggleAddressForm(){
+  delete window._editAddrIndex;
+  document.getElementById('btn-save-addr').textContent='Save & Use this address';
   const form=document.getElementById('addr-form');
   form.classList.toggle('open');
   if(form.classList.contains('open')) document.getElementById('f-name').focus();
 }
-function cancelAddressForm(){ document.getElementById('addr-form').classList.remove('open'); }
+function cancelAddressForm(){
+  delete window._editAddrIndex;
+  document.getElementById('btn-save-addr').textContent='Save & Use this address';
+  document.getElementById('addr-form').classList.remove('open');
+}
+
+function editAddress(i){
+  const a=addresses[i];
+  window._editAddrIndex=i;
+  document.getElementById('f-name').value=a.name||'';
+  document.getElementById('f-phone').value=a.phone||'';
+  document.getElementById('f-pin').value=a.pin||'';
+  document.getElementById('f-addr1').value=a.addr1||'';
+  document.getElementById('f-addr2').value=a.addr2||'';
+  document.getElementById('f-city').value=a.city||'';
+  document.getElementById('f-state').value=a.state||'';
+  document.getElementById('f-type').value=a.type||'Home';
+  document.getElementById('btn-save-addr').textContent='Update Address';
+  document.getElementById('addr-form').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+async function deleteAddress(i){
+  if(!confirm('Delete this address?')) return;
+  const a=addresses[i];
+  const user=JSON.parse(localStorage.getItem('mtr_user')||'null');
+  if(user&&user.uid&&a.firestoreId&&window.deleteAddressFromFirestore){
+    await window.deleteAddressFromFirestore(user.uid, a.firestoreId);
+  }
+  addresses.splice(i,1);
+  if(selectedAddr>=addresses.length) selectedAddr=Math.max(0,addresses.length-1);
+  localStorage.setItem('mtr_addresses',JSON.stringify(addresses));
+  renderAddresses();
+  showToast('Address deleted');
+}
 
 function fetchPin(val){
   if(val.length===6){
@@ -626,20 +684,38 @@ async function saveAddress(){
   if(!name||!phone||!pin||!addr1||!city||!state){ showToast('Please fill all required fields (*)'); return; }
   if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter a valid 10-digit Indian mobile number (starts with 6–9)'); return; }
   if(!/^[1-9]\d{5}$/.test(pin)){ showToast('Enter a valid 6-digit Indian pincode'); return; }
-  const newAddr={id:Date.now(),name,phone,pin,addr1,addr2:document.getElementById('f-addr2').value.trim(),city,state,type:document.getElementById('f-type').value};
-  // Save to Firestore if user is logged in
+  const addr2=document.getElementById('f-addr2').value.trim();
+  const type=document.getElementById('f-type').value;
   const user=JSON.parse(localStorage.getItem('mtr_user')||'null');
-  if(user&&user.uid&&window.saveAddressToFirestore){
-    const fid=await window.saveAddressToFirestore(user.uid, newAddr);
-    if(fid) newAddr.firestoreId=fid;
+
+  if(window._editAddrIndex!==undefined){
+    const i=window._editAddrIndex;
+    const existing=addresses[i];
+    const updated={...existing,name,phone,pin,addr1,addr2,city,state,type};
+    if(user&&user.uid&&existing.firestoreId&&window.updateAddressInFirestore){
+      await window.updateAddressInFirestore(user.uid, existing.firestoreId, updated);
+    }
+    addresses[i]=updated;
+    selectedAddr=i;
+    delete window._editAddrIndex;
+    document.getElementById('btn-save-addr').textContent='Save & Use this address';
+    showToast('Address updated successfully ✓');
+  } else {
+    const newAddr={id:Date.now(),name,phone,pin,addr1,addr2,city,state,type};
+    if(user&&user.uid&&window.saveAddressToFirestore){
+      const fid=await window.saveAddressToFirestore(user.uid, newAddr);
+      if(fid) newAddr.firestoreId=fid;
+    }
+    addresses.push(newAddr);
+    selectedAddr=addresses.length-1;
+    showToast('Address saved successfully ✓');
   }
-  addresses.push(newAddr);
-  selectedAddr=addresses.length-1;
+
   localStorage.setItem('mtr_addresses',JSON.stringify(addresses));
   document.getElementById('addr-form').classList.remove('open');
   ['f-name','f-phone','f-pin','f-addr1','f-addr2','f-city'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-state').value='';
-  renderAddresses(); showToast('Address saved successfully ✓');
+  renderAddresses();
 }
 
 // ── Section navigation ──
