@@ -441,15 +441,15 @@
       const uid = orderData.userId;
       let ref;
       if(uid && uid !== 'guest'){
-        // Save under user's subcollection (allowed by existing rules)
         ref = await addDoc(collection(db, 'users', uid, 'orders'), { ...orderData, createdAt: serverTimestamp() });
       } else {
-        // Fallback to top-level orders collection
         ref = await addDoc(collection(db, 'orders'), { ...orderData, createdAt: serverTimestamp() });
       }
       console.log('Order saved to Firestore:', ref.id);
+      if(window.showToast) window.showToast('Order saved! ID: ' + ref.id);
     } catch(e) {
       console.error('Firestore save order error:', e.code, e.message);
+      if(window.showToast) window.showToast('Firestore error: ' + e.code);
     }
   };
 
