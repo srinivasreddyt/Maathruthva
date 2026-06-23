@@ -520,9 +520,6 @@ if(_params.get('buynow')==='1'){
 
 // ── Saved addresses ──
 let addresses = JSON.parse(localStorage.getItem('mtr_addresses') || '[]');
-if(!addresses.length) addresses = [
-  {id:1, name:'Priya Sharma', addr1:'12, Sunshine Apartments', addr2:'MG Road, Nampally', city:'Hyderabad', state:'Telangana', pin:'500001', phone:'+91 98765 43210', type:'Home'},
-];
 let selectedAddr = 0;
 let promoDiscount = 0;
 let currentSection = 'cart';
@@ -623,6 +620,10 @@ function applyPromo(){
 // ── Address ──
 function renderAddresses(){
   const list = document.getElementById('addr-list');
+  if(!addresses.length){
+    list.innerHTML = `<div style="text-align:center;padding:28px 16px;color:var(--ink-soft);font-size:.95rem;">No saved addresses found.</div>`;
+    updatePayBtn(); return;
+  }
   list.innerHTML = addresses.map((a,i)=>`
     <div class="addr-card${i===selectedAddr?' selected':''}" onclick="selectAddr(${i})">
       <div class="addr-radio"></div>
