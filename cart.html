@@ -439,13 +439,15 @@
   window.saveOrderToFirestore = async function(orderData) {
     try {
       const uid = orderData.userId;
-      let ref;
+      let ref, path;
       if(uid && uid !== 'guest'){
+        path = `users/${uid}/orders`;
         ref = await addDoc(collection(db, 'users', uid, 'orders'), { ...orderData, createdAt: serverTimestamp() });
       } else {
+        path = `orders`;
         ref = await addDoc(collection(db, 'orders'), { ...orderData, createdAt: serverTimestamp() });
       }
-      console.log('Order saved to Firestore:', ref.id);
+      console.log('Order saved at path:', path, '| Doc ID:', ref.id, '| UID used:', uid);
       if(window.showToast) window.showToast('Order saved! ID: ' + ref.id);
     } catch(e) {
       console.error('Firestore save order error:', e.code, e.message);
