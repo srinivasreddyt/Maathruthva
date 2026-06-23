@@ -587,13 +587,14 @@ function removeItem(id){
 }
 function saveCart(){
   localStorage.setItem('mtr_cart', JSON.stringify(cart));
-  if(window.saveCartToFirestore){
-    var fsItems=cart.map(function(c){
-      var p=PRODUCTS.find(function(x){return x.id===c.id;});
-      return p?{name:p.name,qty:c.qty,price:p.price,sub:p.meta||''}:{id:c.id,qty:c.qty};
-    });
-    window.saveCartToFirestore(fsItems);
-  }
+  var _u=JSON.parse(localStorage.getItem('mtr_user')||'null');
+  if(!_u||!_u.uid)return;
+  var fsItems=cart.map(function(c){
+    var p=PRODUCTS.find(function(x){return x.id===c.id;});
+    return p?{name:p.name,qty:c.qty,price:p.price,sub:p.meta||''}:{id:c.id,qty:c.qty};
+  });
+  if(window.saveCartToFirestore)window.saveCartToFirestore(fsItems);
+  else window._cartPending=fsItems;
 }
 
 // ── Summary ──
