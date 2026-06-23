@@ -354,7 +354,7 @@
     </div>
 
     <!-- RIGHT COLUMN — Order Summary -->
-    <div>
+    <div id="order-summary-col" style="display:none">
       <div class="panel" style="position:sticky;top:100px;">
         <div class="panel-head"><h2>Order Summary</h2></div>
         <div class="summary-rows">
@@ -533,6 +533,7 @@ function renderCart(){
   const active = cart.filter(c=>c.qty>0);
   document.getElementById('cart-item-count').textContent = active.length + ' item' + (active.length!==1?'s':'');
   
+  const summaryCol = document.getElementById('order-summary-col');
   if(!active.length){
     list.innerHTML = `<div class="empty-cart">
       <div class="ic">🛒</div>
@@ -540,8 +541,10 @@ function renderCart(){
       <p>Add some wholesome baby food to get started.</p>
       <button class="btn-shop" onclick="location.href='Food_Products.html'">Shop Now</button>
     </div>`;
+    if(summaryCol) summaryCol.style.display = 'none';
     updateSummary(); saveCart(); return;
   }
+  if(summaryCol) summaryCol.style.display = '';
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
     if(!p) return '';
