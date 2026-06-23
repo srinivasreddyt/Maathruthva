@@ -912,6 +912,7 @@ async function initPayment(){
       document.getElementById('order-id-display').textContent='Order ID: '+response.razorpay_payment_id;
       document.getElementById('success-modal').classList.add('open');
       cart=[]; localStorage.removeItem('mtr_cart');
+      if(window.saveCartToFirestore) window.saveCartToFirestore([]);
     },
     modal:{
       ondismiss: function(){
