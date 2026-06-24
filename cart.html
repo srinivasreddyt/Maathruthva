@@ -913,6 +913,12 @@ async function initPayment(){
       document.getElementById('success-modal').classList.add('open');
       cart=[]; localStorage.removeItem('mtr_cart');
       if(window.saveCartToFirestore) window.saveCartToFirestore([]);
+      if(user.phone){
+        fetch(`${BACKEND_URL}/api/send-whatsapp`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({phone: user.phone, paymentId: response.razorpay_payment_id})
+        }).catch(()=>{});
+      }
     },
     modal:{
       ondismiss: function(){
