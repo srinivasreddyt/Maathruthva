@@ -54,9 +54,12 @@
     .item-price{font-size:14px;color:#b5451b;font-weight:600;text-align:right;}
 
     /* ── Address ── */
-    .order-address{padding:12px 20px 16px;background:#fafafa;border-top:1px solid #f0e6d3;}
+    .order-address{padding:12px 20px 16px;background:#fafafa;border-top:1px solid #f0e6d3;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+    .address-block{flex:1;}
     .address-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
     .address-text{font-size:13px;color:#666;}
+    .btn-track{background:#b5451b;color:#fff;border:none;padding:9px 20px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+    .btn-track:hover{background:#9a3a17;}
 
     /* ── Loading spinner ── */
     .spinner{width:36px;height:36px;border:3px solid #f0e6d3;border-top-color:#b5451b;border-radius:50%;animation:spin .8s linear infinite;margin:60px auto;}
@@ -172,7 +175,7 @@
           <div class="order-total">₹${data.total}</div>
         </div>
         <div class="order-items">${itemsHtml}</div>
-        ${addrText ? `<div class="order-address"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div>` : ''}
+        ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div><button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button></div>` : ''}
       </div>`;
   }
 
