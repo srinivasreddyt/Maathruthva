@@ -20,6 +20,7 @@
   a{text-decoration:none;color:inherit;} button{font-family:'Jost';cursor:pointer;} img{display:block;max-width:100%;}
   .announce{background:var(--light-sage);color:var(--sage-deep);text-align:center;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;font-weight:500;border-bottom:1px solid rgba(138,122,80,.18);}
   header{position:sticky;top:0;z-index:50;background:rgba(247,242,231,.93);backdrop-filter:blur(10px);border-bottom:1px solid rgba(138,122,80,.18);}
+  .header-wrap{position:sticky;top:0;z-index:50;}
   .nav{display:flex;align-items:center;justify-content:space-between;height:74px;gap:12px;}
   .nav-left{display:flex;align-items:center;gap:10px;min-width:0;}
   .brand-lockup{display:flex;align-items:center;gap:12px;min-width:0;}
@@ -291,8 +292,8 @@
     <a href="my-orders.html" id="mobile-my-orders-link" style="display:none;">My Orders</a>
     <a href="#values" onclick="closeMenu()">Why Us</a>
     <a href="#contact" onclick="closeMenu()">Contact</a>
+    <div id="mobile-greeting" style="display:none;padding:12px 28px;border-top:1px solid rgba(138,122,80,.1);background:#fdf6ee;font-size:13px;color:#5a3e28;"></div>
   </nav>
-  <div id="mobile-greeting" style="display:none;padding:8px 16px;background:#fdf6ee;font-size:13px;color:#5a3e28;border-bottom:1px solid rgba(138,122,80,.12);"></div>
 </header>
 
 <section class="hero">
