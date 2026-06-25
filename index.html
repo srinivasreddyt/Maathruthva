@@ -514,7 +514,7 @@ function logoutUser(){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = greetHtml(name)+'<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+      nav.innerHTML = greetHtml(name)+'<a href="my-orders.html" style="font-size:13px;color:#b5451b;text-decoration:none;font-family:Jost,sans-serif;padding:7px 14px;border:1.5px solid #b5451b;border-radius:20px;">My Orders</a><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
