@@ -278,6 +278,7 @@
     <a href="Food_Products.html" onclick="closeMenu()">Food Products</a>
     <a href="#values" onclick="closeMenu()">Why Us</a>
     <a href="#contact" onclick="closeMenu()">Contact</a>
+    <a href="my-orders.html" id="mobile-my-orders-link" onclick="closeMenu()" style="display:none;">My Orders</a>
   </nav>
   <div id="mobile-greeting" style="display:none;text-align:center;font-size:13px;color:#5a3e28;padding:4px 0;background:#fdf6ee;"></div>
 </header>
@@ -514,10 +515,15 @@ function logoutUser(){
     try{
       var data = JSON.parse(u);
       var name = data.name || 'User';
-      nav.innerHTML = greetHtml(name)+'<a href="my-orders.html" style="font-size:13px;color:#b5451b;text-decoration:none;font-family:Jost,sans-serif;padding:7px 14px;border:1.5px solid #b5451b;border-radius:20px;">My Orders</a><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       if(window.innerWidth <= 560){
+        // Mobile: only show Cart pill, put My Orders in hamburger menu
+        nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
         mob.style.display = 'block';
         mob.textContent = 'Hi, '+name;
+        var mobileOrdersLink = document.getElementById('mobile-my-orders-link');
+        if(mobileOrdersLink) mobileOrdersLink.style.display = 'block';
+      } else {
+        nav.innerHTML = greetHtml(name)+'<a href="my-orders.html" style="font-size:13px;color:#b5451b;text-decoration:none;font-family:Jost,sans-serif;padding:7px 14px;border:1.5px solid #b5451b;border-radius:20px;">My Orders</a><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
       }
     }catch(e){
       nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
