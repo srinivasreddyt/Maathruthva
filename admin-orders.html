@@ -242,8 +242,8 @@ window.lockAdmin = function() {
 function initDashboard() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('date-picker').value = today;
-  document.getElementById('date-picker').addEventListener('change', loadOrders);
-  loadOrders();
+  document.getElementById('date-picker').addEventListener('change', window.loadOrders);
+  window.loadOrders();
 }
 
 // Auto-unlock if already authenticated this session
@@ -251,7 +251,7 @@ if(sessionStorage.getItem('mtr_admin') === '1') {
   document.getElementById('pin-gate').style.display = 'none';
   document.getElementById('admin-header').style.display = 'flex';
   document.getElementById('admin-main').style.display = 'block';
-  initDashboard();
+  setTimeout(initDashboard, 0);
 }
 
 // ── Load orders ──
