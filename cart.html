@@ -919,6 +919,19 @@ async function initPayment(){
           body: JSON.stringify({phone: user.phone, paymentId: response.razorpay_payment_id})
         }).catch(()=>{});
       }
+      if(user.email){
+        fetch(`${BACKEND_URL}/api/send-email`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: user.email,
+            name: user.name||'',
+            paymentId: response.razorpay_payment_id,
+            items: orderData.items,
+            total: orderData.total,
+            address: orderData.address
+          })
+        }).catch(()=>{});
+      }
     },
     modal:{
       ondismiss: function(){
