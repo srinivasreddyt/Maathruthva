@@ -900,6 +900,7 @@ async function initPayment(){
       }
 
       const user=JSON.parse(localStorage.getItem('mtr_user')||'{}');
+      console.log('[Order] user email:', user.email, '| phone:', user.phone, '| uid:', user.uid);
       const orderData={
         paymentId: response.razorpay_payment_id,
         orderId: response.razorpay_order_id,
