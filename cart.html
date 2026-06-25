@@ -555,7 +555,7 @@ function renderCart(){
     if(pageGrid){ pageGrid.style.gridTemplateColumns = '1fr'; pageGrid.style.maxWidth = '640px'; pageGrid.style.margin = '0 auto'; }
     updateSummary(); saveCart(); return;
   }
-  if(summaryCol) summaryCol.style.display = '';
+  if(summaryCol) summaryCol.style.display = window.innerWidth <= 860 ? 'none' : '';
   if(pageGrid){ pageGrid.style.gridTemplateColumns = ''; pageGrid.style.maxWidth = ''; pageGrid.style.margin = ''; }
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
@@ -790,6 +790,9 @@ async function goToAddress(){
   document.getElementById('step2').classList.add('active');
   document.getElementById('summary-btn-text').textContent='Continue to Payment';
   currentSection='address';
+  // Show summary on mobile only from address step onwards
+  const sc=document.getElementById('order-summary-col');
+  if(sc && window.innerWidth<=860) sc.style.display='';
   // Fetch saved addresses from Firestore for logged-in users
   if(user&&user.uid&&window.fetchAddressesFromFirestore){
     const addrList=document.getElementById('addr-list');
@@ -822,6 +825,9 @@ function backToCart(){
   document.getElementById('summary-btn-text').textContent='Proceed to Address';
   currentSection='cart';
   window.scrollTo({top:0, behavior:'smooth'});
+  // Hide summary on mobile when back on cart step
+  const sc=document.getElementById('order-summary-col');
+  if(sc && window.innerWidth<=860) sc.style.display='none';
 }
 
 function summaryAction(){
