@@ -476,6 +476,12 @@
 <script>
   function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open');}
   function closeMenu(){document.getElementById('mobile-menu').classList.remove('open');}
+  window.addEventListener('scroll',function(){closeMenu();},{passive:true});
+  document.addEventListener('click',function(e){
+    var menu=document.getElementById('mobile-menu');
+    var toggle=document.querySelector('.menu-toggle');
+    if(menu.classList.contains('open')&&!menu.contains(e.target)&&!toggle.contains(e.target)){closeMenu();}
+  });
   function toggleMobCat(){
     var list=document.getElementById('mob-cat-list');
     var arrow=document.getElementById('mob-cat-arrow');
