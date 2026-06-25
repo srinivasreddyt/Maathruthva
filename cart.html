@@ -308,7 +308,8 @@
           </div>
           <div class="cart-list" id="cart-list"></div>
         </div>
-
+        <!-- Mobile-only Select Address button -->
+        <button id="mobile-select-addr-btn" onclick="goToAddress()" style="display:none;width:100%;margin-top:16px;padding:14px;background:var(--sage-deep);color:#fff;border:none;border-radius:12px;font-family:'Jost',sans-serif;font-size:.95rem;font-weight:500;letter-spacing:.04em;cursor:pointer;">Select Address →</button>
       </div>
 
       <!-- Address section -->
@@ -552,10 +553,14 @@ function renderCart(){
       <button class="btn-shop" onclick="location.href='Food_Products.html'">Shop Now</button>
     </div>`;
     if(summaryCol) summaryCol.style.display = 'none';
+    const mab = document.getElementById('mobile-select-addr-btn');
+    if(mab) mab.style.display = 'none';
     if(pageGrid){ pageGrid.style.gridTemplateColumns = '1fr'; pageGrid.style.maxWidth = '640px'; pageGrid.style.margin = '0 auto'; }
     updateSummary(); saveCart(); return;
   }
   if(summaryCol) summaryCol.style.display = window.innerWidth <= 860 ? 'none' : '';
+  const mab = document.getElementById('mobile-select-addr-btn');
+  if(mab) mab.style.display = window.innerWidth <= 860 ? 'block' : 'none';
   if(pageGrid){ pageGrid.style.gridTemplateColumns = ''; pageGrid.style.maxWidth = ''; pageGrid.style.margin = ''; }
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
@@ -773,6 +778,9 @@ async function saveAddress(){
   const _addBtn=document.getElementById('add-addr-btn');
   if(_list) _list.style.display='';
   if(_addBtn) _addBtn.style.display='';
+  // Show summary now that addresses exist
+  const _sc=document.getElementById('order-summary-col');
+  if(_sc && window.innerWidth<=860) _sc.style.display='';
   renderAddresses();
 }
 
@@ -790,9 +798,9 @@ async function goToAddress(){
   document.getElementById('step2').classList.add('active');
   document.getElementById('summary-btn-text').textContent='Continue to Payment';
   currentSection='address';
-  // Show summary on mobile only from address step onwards
+  // On mobile: show summary only if addresses exist, hide if showing blank form
   const sc=document.getElementById('order-summary-col');
-  if(sc && window.innerWidth<=860) sc.style.display='';
+  if(sc && window.innerWidth<=860) sc.style.display = addresses.length ? '' : 'none';
   // Fetch saved addresses from Firestore for logged-in users
   if(user&&user.uid&&window.fetchAddressesFromFirestore){
     const addrList=document.getElementById('addr-list');
@@ -828,6 +836,8 @@ function backToCart(){
   // Hide summary on mobile when back on cart step
   const sc=document.getElementById('order-summary-col');
   if(sc && window.innerWidth<=860) sc.style.display='none';
+  const mab=document.getElementById('mobile-select-addr-btn');
+  if(mab && window.innerWidth<=860) mab.style.display='block';
 }
 
 function summaryAction(){
