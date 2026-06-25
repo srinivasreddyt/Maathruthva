@@ -440,15 +440,27 @@
   window.saveOrderToFirestore = async function(orderData) {
     try {
       const uid = orderData.userId;
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      const enriched = { ...orderData, createdAt: serverTimestamp(), date: dateStr };
+
       let ref, path;
       if(uid && uid !== 'guest'){
         path = `users/${uid}/orders`;
-        ref = await addDoc(collection(db, 'users', uid, 'orders'), { ...orderData, createdAt: serverTimestamp() });
+        ref = await addDoc(collection(db, 'users', uid, 'orders'), enriched);
       } else {
         path = `orders`;
-        ref = await addDoc(collection(db, 'orders'), { ...orderData, createdAt: serverTimestamp() });
+        ref = await addDoc(collection(db, 'orders'), enriched);
       }
-      console.log('Order saved at path:', path, '| Doc ID:', ref.id, '| UID used:', uid);
+
+      // Also save to top-level all_orders collection (admin view, grouped by date)
+      await addDoc(collection(db, 'all_orders'), {
+        ...enriched,
+        docId: ref.id,
+        userPath: path
+      });
+
+      console.log('Order saved at path:', path, '| Doc ID:', ref.id, '| Date:', dateStr);
       if(window.showToast) window.showToast('Order saved! ID: ' + ref.id);
     } catch(e) {
       console.error('Firestore save order error:', e.code, e.message);
