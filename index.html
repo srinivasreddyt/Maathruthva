@@ -53,7 +53,7 @@
   .checkout-btn{width:100%;background:var(--sage-deep);color:var(--paper);border:none;padding:15px;border-radius:10px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
   .checkout-btn:hover{background:var(--sage-dark);}
   .menu-toggle{display:none;background:none;border:none;font-size:1.6rem;line-height:1;color:var(--sage-deep);width:40px;height:40px;border-radius:10px;flex-shrink:0;align-items:center;justify-content:center;}
-  .mobile-menu{display:none;flex-direction:column;background:var(--paper);border-bottom:1px solid rgba(138,122,80,.18);overflow:hidden;max-height:0;transition:max-height .32s ease;}
+  .mobile-menu{display:none;flex-direction:column;background:var(--paper);border-bottom:1px solid rgba(138,122,80,.18);overflow:hidden;max-height:0;transition:max-height .32s ease;position:absolute;top:100%;left:0;right:0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.12);}
   .mobile-menu.open{max-height:700px;}
   .mobile-menu a{padding:15px 28px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);border-top:1px solid rgba(138,122,80,.1);}
   .mobile-menu a:first-child{border-top:none;} .mobile-menu a:hover{background:var(--light-sage);color:var(--sage-deep);}
