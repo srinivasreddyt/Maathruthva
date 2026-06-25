@@ -57,6 +57,11 @@
   .mobile-menu.open{max-height:420px;}
   .mobile-menu a{padding:15px 28px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);border-top:1px solid rgba(138,122,80,.1);}
   .mobile-menu a:first-child{border-top:none;} .mobile-menu a:hover{background:var(--light-sage);color:var(--sage-deep);}
+  .mob-cat-toggle{padding:15px 28px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);border-top:1px solid rgba(138,122,80,.1);cursor:pointer;user-select:none;}
+  .mob-cat-toggle:hover{background:var(--light-sage);color:var(--sage-deep);}
+  .mob-cat-soon{display:flex;align-items:center;justify-content:space-between;padding:13px 28px 13px 36px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:#aaa;border-top:1px solid rgba(138,122,80,.1);cursor:not-allowed;}
+  .soon-badge{font-size:10px;background:#e0d8cc;color:#888;padding:2px 7px;border-radius:8px;letter-spacing:.05em;text-transform:uppercase;}
+  #mob-cat-list a{border-top:1px solid rgba(138,122,80,.1);}
 
   /* hero */
   .hero{background:radial-gradient(ellipse at 70% 25%,rgba(220,231,196,.5),transparent 60%),var(--cream);text-align:center;padding:64px 0 54px;}
@@ -274,12 +279,20 @@
     <div class="nav-actions" id="nav-actions"></div>
   </div>
   <nav class="mobile-menu" id="mobile-menu">
-    <a href="#categories" onclick="closeMenu()">Categories</a>
-    <a href="Food_Products.html" onclick="closeMenu()">Food Products</a>
+    <div class="mob-cat-toggle" onclick="toggleMobCat()">
+      Categories <span id="mob-cat-arrow" style="float:right;transition:transform .3s;">&#9660;</span>
+    </div>
+    <div id="mob-cat-list" style="display:none;background:#f7f2ea;">
+      <a href="Food_Products.html" onclick="closeMenu()" style="padding-left:36px;">Food Products</a>
+      <span class="mob-cat-soon" style="padding-left:36px;">Snacks <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon" style="padding-left:36px;">Skin &amp; Hair Care <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon" style="padding-left:36px;">Clothes <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon" style="padding-left:36px;">Toys <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon" style="padding-left:36px;">Gifting <span class="soon-badge">Soon</span></span>
+    </div>
     <a href="my-orders.html" id="mobile-my-orders-link" onclick="closeMenu()" style="display:none;">My Orders</a>
     <a href="#values" onclick="closeMenu()">Why Us</a>
     <a href="#contact" onclick="closeMenu()">Contact</a>
-    <a href="my-orders.html" id="mobile-my-orders-link" onclick="closeMenu()" style="display:none;">My Orders</a>
   </nav>
   <div id="mobile-greeting" style="display:none;text-align:center;font-size:13px;color:#5a3e28;padding:6px 0;background:#fdf6ee;"><!-- greeting set by JS --></div>
 </header>
@@ -463,6 +476,12 @@
 <div class="toast" id="toast"></div>
 <script>
   function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open');}
+  function toggleMobCat(){
+    var list=document.getElementById('mob-cat-list');
+    var arrow=document.getElementById('mob-cat-arrow');
+    if(list.style.display==='none'){list.style.display='block';arrow.style.transform='rotate(180deg)';}
+    else{list.style.display='none';arrow.style.transform='';}
+  }
   function closeMenu(){document.getElementById('mobile-menu').classList.remove('open');}
   let tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
 </script>
@@ -599,5 +618,7 @@ function renderCartDrawer(){
 </aside>
 </body>
 </html>
+
+
 
 
