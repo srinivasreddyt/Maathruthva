@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Orders Dashboard | Maathruthva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Jost',sans-serif;background:#f5f0e8;color:#333;min-height:100vh;}
+
+    /* ── PIN Gate ── */
+    #pin-gate{position:fixed;inset:0;background:#f5f0e8;display:flex;align-items:center;justify-content:center;z-index:999;}
+    .pin-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:380px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.1);}
+    .pin-logo{font-family:'Cormorant Garamond',serif;font-size:28px;color:#b5451b;font-weight:600;margin-bottom:4px;}
+    .pin-sub{font-size:13px;color:#888;margin-bottom:28px;}
+    .pin-label{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;text-align:left;}
+    .pin-input{width:100%;padding:12px 16px;border:1.5px solid #e0d8cc;border-radius:10px;font-size:18px;letter-spacing:6px;text-align:center;font-family:'Jost',sans-serif;outline:none;margin-bottom:16px;}
+    .pin-input:focus{border-color:#b5451b;}
+    .pin-btn{width:100%;padding:13px;background:#b5451b;color:#fff;border:none;border-radius:10px;font-family:'Jost',sans-serif;font-size:15px;font-weight:500;cursor:pointer;}
+    .pin-btn:hover{background:#9a3a17;}
+    .pin-error{color:#c0392b;font-size:13px;margin-top:10px;display:none;}
+
+    /* ── Header ── */
+    header{background:#fff;border-bottom:1px solid #e8dfd0;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .admin-brand{display:flex;align-items:center;gap:12px;}
+    .brand-logo{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#FBF8F0;padding:2px;box-shadow:0 3px 10px -3px rgba(74,104,48,.45);flex-shrink:0;}
+    .brand-wordmark{height:34px;width:auto;max-width:160px;object-fit:contain;}
+    .admin-badge{font-size:11px;background:#fff3cd;color:#856404;padding:3px 10px;border-radius:20px;font-weight:500;border:1px solid #ffc107;}
+    .logout-btn{background:none;border:1.5px solid #ccc;color:#666;padding:7px 16px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Jost',sans-serif;}
+    .logout-btn:hover{border-color:#b5451b;color:#b5451b;}
+
+    /* ── Main ── */
+    .main{max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
+
+    /* ── Controls ── */
+    .controls{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+    .date-picker-wrap{display:flex;align-items:center;gap:10px;}
+    .date-picker-wrap label{font-size:13px;color:#888;font-weight:500;}
+    .date-input{padding:9px 14px;border:1.5px solid #e0d8cc;border-radius:10px;font-family:'Jost',sans-serif;font-size:14px;color:#333;background:#fff;cursor:pointer;outline:none;}
+    .date-input:focus{border-color:#b5451b;}
+    .refresh-btn{padding:9px 18px;background:#fff;border:1.5px solid #e0d8cc;border-radius:10px;font-family:'Jost',sans-serif;font-size:13px;color:#555;cursor:pointer;display:flex;align-items:center;gap:6px;}
+    .refresh-btn:hover{border-color:#b5451b;color:#b5451b;}
+
+    /* ── Stats ── */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+    .stat-card{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #ede6da;}
+    .stat-val{font-size:28px;font-weight:600;color:#333;margin-bottom:4px;}
+    .stat-val.revenue{color:#b5451b;}
+    .stat-label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.06em;}
+    .stat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+    .dot-pending{background:#f39c12;}
+    .dot-dispatched{background:#27ae60;}
+    .dot-delivered{background:#6f42c1;}
+
+    /* ── Filter tabs ── */
+    .filter-tabs{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+    .tab{padding:7px 18px;border-radius:20px;font-size:13px;cursor:pointer;border:1.5px solid #e0d8cc;background:#fff;color:#666;font-family:'Jost',sans-serif;transition:.2s;}
+    .tab.active{background:#b5451b;border-color:#b5451b;color:#fff;}
+    .tab-count{display:inline-block;background:rgba(255,255,255,.3);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;}
+    .tab:not(.active) .tab-count{background:#f0e6d3;color:#b5451b;}
+    .search-wrap{margin-left:auto;position:relative;display:flex;align-items:center;}
+    .search-input{padding:7px 16px 7px 36px;border:1.5px solid #e0d8cc;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;color:#333;background:#fff;outline:none;width:240px;transition:.2s;}
+    .search-input:focus{border-color:#b5451b;width:280px;}
+    .search-input::placeholder{color:#bbb;}
+    .search-icon{position:absolute;left:12px;color:#bbb;font-size:14px;pointer-events:none;}
+    .search-clear{position:absolute;right:10px;color:#bbb;font-size:16px;cursor:pointer;display:none;line-height:1;}
+    .search-clear:hover{color:#b5451b;}
+    @media(max-width:768px){.search-wrap{margin-left:0;width:100%;}.search-input{width:100%;}.search-input:focus{width:100%;}}
+
+    /* ── Order cards ── */
+    .orders-grid{display:flex;flex-direction:column;gap:14px;}
+    .order-card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #ede6da;transition:box-shadow .2s;}
+    .order-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);}
+    .order-card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fdf8f2;border-bottom:1px solid #f0e6d3;flex-wrap:wrap;gap:10px;}
+    .order-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .order-time{font-size:12px;color:#888;}
+    .order-pid{font-size:12px;color:#b5451b;background:#ffeee7;padding:3px 10px;border-radius:10px;font-weight:500;font-family:monospace;}
+    .order-total{font-size:16px;font-weight:600;color:#333;}
+
+    /* Status badge */
+    .status-badge{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;white-space:nowrap;}
+    .status-confirmed{background:#fff3cd;color:#856404;}
+    .status-dispatched{background:#d4edda;color:#155724;}
+    .status-delivered{background:#e8d5f5;color:#4a235a;}
+    .status-cancelled{background:#f8d7da;color:#721c24;}
+
+    /* Status buttons */
+    .status-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .btn-status{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid;font-family:'Jost',sans-serif;transition:.2s;white-space:nowrap;}
+    .btn-dispatch{border-color:#27ae60;color:#27ae60;background:#fff;}
+    .btn-dispatch:hover{background:#27ae60;color:#fff;}
+    .btn-deliver{border-color:#6f42c1;color:#6f42c1;background:#fff;}
+    .btn-deliver:hover{background:#6f42c1;color:#fff;}
+    .btn-delivered-done{border-color:#aaa;color:#aaa;background:#f9f9f9;cursor:default;}
+
+    /* Order body */
+    .order-card-body{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+    .order-items-col{padding:16px 20px;border-right:1px solid #f0e6d3;}
+    .order-addr-col{padding:16px 20px;}
+    .col-title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:10px;font-weight:500;}
+    .item-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #faf5ee;font-size:13px;}
+    .item-row:last-child{border-bottom:none;}
+    .item-name{color:#444;flex:1;}
+    .item-qty{color:#888;margin:0 12px;font-size:12px;}
+    .item-price{color:#b5451b;font-weight:500;}
+    .addr-line{font-size:13px;color:#555;line-height:1.7;}
+    .addr-name{font-weight:500;color:#333;font-size:14px;margin-bottom:4px;}
+    .addr-phone{font-size:13px;color:#888;margin-top:4px;}
+    .customer-email{font-size:12px;color:#aaa;margin-top:2px;}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:80px 20px;}
+    .empty-state h3{font-family:'Cormorant Garamond',serif;font-size:26px;color:#888;margin-bottom:8px;}
+    .empty-state p{color:#aaa;font-size:14px;}
+
+    /* Loading */
+    .spinner{width:36px;height:36px;border:3px solid #f0e6d3;border-top-color:#b5451b;border-radius:50%;animation:spin .8s linear infinite;margin:60px auto;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* Error */
+    .error-box{background:#fff3f3;border:1px solid #f5c6cb;border-radius:12px;padding:20px;color:#721c24;font-size:14px;margin:20px 0;}
+
+    @media(max-width:768px){
+      .stats{grid-template-columns:1fr 1fr;}
+      .order-card-body{grid-template-columns:1fr;}
+      .order-items-col{border-right:none;border-bottom:1px solid #f0e6d3;}
+      .controls{flex-direction:column;align-items:flex-start;}
+      .main{padding:20px 16px 60px;}
+    }
+    @media(max-width:480px){
+      .stats{grid-template-columns:1fr 1fr;}
+      .order-card-head{flex-direction:column;align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- PIN Gate -->
+<div id="pin-gate">
+  <div class="pin-box">
+    <div class="pin-logo">Maathruthva</div>
+    <div class="pin-sub">Admin Orders Dashboard</div>
+    <div class="pin-label">Enter Admin PIN</div>
+    <input class="pin-input" id="pin-input" type="password" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')checkPin()">
+    <button class="pin-btn" onclick="checkPin()">Access Dashboard</button>
+    <div class="pin-error" id="pin-error">Incorrect PIN. Try again.</div>
+  </div>
+</div>
+
+<!-- Header -->
+<header id="admin-header" style="display:none;">
+  <div class="admin-brand">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <img class="brand-logo" src="" id="admin-logo-img" alt="Maathruthva">
+      <img class="brand-wordmark" src="" id="admin-wordmark-img" alt="Maathruthva">
+    </a>
+    <span class="admin-badge">Admin</span>
+  </div>
+  <button class="logout-btn" onclick="lockAdmin()">Lock</button>
+</header>
+
+<!-- Main -->
+<div class="main" id="admin-main" style="display:none;">
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="date-picker-wrap">
+      <label>Orders for</label>
+      <input type="date" class="date-input" id="date-picker">
+    </div>
+    <button class="refresh-btn" onclick="adminLoadOrders()">↻ Refresh</button>
+    <span id="last-updated" style="font-size:12px;color:#aaa;"></span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-total">—</div>
+      <div class="stat-label">Total Orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val revenue" id="stat-revenue">—</div>
+      <div class="stat-label">Total Revenue</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-pending">—</div>
+      <div class="stat-label"><span class="stat-dot dot-pending"></span>Pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="stat-delivered">—</div>
+      <div class="stat-label"><span class="stat-dot dot-delivered"></span>Delivered</div>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <button class="tab active" data-filter="all" onclick="adminSetFilter('all')">All <span class="tab-count" id="cnt-all">0</span></button>
+    <button class="tab" data-filter="confirmed" onclick="adminSetFilter('confirmed')">Pending <span class="tab-count" id="cnt-confirmed">0</span></button>
+    <button class="tab" data-filter="dispatched" onclick="adminSetFilter('dispatched')">Dispatched <span class="tab-count" id="cnt-dispatched">0</span></button>
+    <button class="tab" data-filter="delivered" onclick="adminSetFilter('delivered')">Delivered <span class="tab-count" id="cnt-delivered">0</span></button>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="order-search" type="text" placeholder="Search by name, email or order ID…" oninput="adminSearch(this.value)">
+      <span class="search-clear" id="search-clear" onclick="adminClearSearch()">×</span>
+    </div>
+  </div>
+
+  <!-- Orders -->
+  <div class="orders-grid" id="orders-grid">
+    <div class="spinner"></div>
+  </div>
+
+</div>
+
+<script type="module">
+/* v3 */
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
+  authDomain: "maathruthva.firebaseapp.com",
+  projectId: "maathruthva",
+  storageBucket: "maathruthva.firebasestorage.app",
+  messagingSenderId: "772318181453",
+  appId: "1:772318181453:web:e736b87f53c264b8cf8404"
+};
+
+const ADMIN_PIN = '2611';
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let allOrders = [];
+let currentFilter = 'all';
+let searchQuery = '';
+
+// ── All functions defined first ──
+
+function showAdminUI() {
+  document.getElementById('pin-gate').style.display = 'none';
+  document.getElementById('admin-header').style.display = 'flex';
+  document.getElementById('admin-main').style.display = 'block';
+}
+
+function initDashboard() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('date-picker').value = today;
+  document.getElementById('date-picker').addEventListener('change', loadOrders);
+  loadOrders();
+}
+
+async function loadOrders() {
+  const grid = document.getElementById('orders-grid');
+  grid.innerHTML = '<div class="spinner"></div>';
+  const date = document.getElementById('date-picker').value;
+  if (!date) return;
+  try {
+    const q = query(
+      collection(db, 'all_orders'),
+      where('date', '==', date),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    allOrders = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+    updateStats();
+    renderOrders();
+  } catch (e) {
+    const indexUrl = e.message.match(/https:\/\/\S+/)?.[0] || '';
+    const indexLink = indexUrl ? `<br><br><a href="${indexUrl}" target="_blank" style="color:#b5451b;font-weight:500;">→ Click here to create the required Firestore index</a> (takes ~1 min)` : '';
+    grid.innerHTML = `<div class="error-box">Error loading orders: ${e.message.split('You can create')[0].trim()}<br><small>Make sure Firestore security rules allow reading <code>all_orders</code>.</small>${indexLink}</div>`;
+  }
+}
+
+function updateStats() {
+  const total = allOrders.length;
+  const revenue = allOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const pending = allOrders.filter(o => o.status === 'confirmed').length;
+  const dispatched = allOrders.filter(o => o.status === 'dispatched').length;
+  const delivered = allOrders.filter(o => o.status === 'delivered').length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-revenue').textContent = '₹' + revenue.toFixed(0);
+  document.getElementById('stat-pending').textContent = pending + dispatched;
+  document.getElementById('stat-delivered').textContent = delivered;
+
+  document.getElementById('cnt-all').textContent = total;
+  document.getElementById('cnt-confirmed').textContent = pending;
+  document.getElementById('cnt-dispatched').textContent = dispatched;
+  document.getElementById('cnt-delivered').textContent = delivered;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+  // Clear search when switching tabs
+  searchQuery = '';
+  const si = document.getElementById('order-search');
+  if(si) si.value = '';
+  const sc = document.getElementById('search-clear');
+  if(sc) sc.style.display = 'none';
+  renderOrders();
+}
+
+function renderOrders() {
+  const grid = document.getElementById('orders-grid');
+  let filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(o => {
+      const name = (o.userName || o.address?.name || '').toLowerCase();
+      const email = (o.userEmail || '').toLowerCase();
+      const phone = (o.userPhone || o.address?.phone || '').toLowerCase();
+      const pid = (o.paymentId || o._id || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || phone.includes(q) || pid.includes(q);
+    });
+  }
+  if (!filtered.length) {
+    const msg = searchQuery ? 'No orders match your search' : (currentFilter === 'all' ? 'No orders today' : 'No orders in this category');
+    const sub = searchQuery ? 'Try a different name, email or order ID.' : (currentFilter === 'all' ? 'Orders placed today will appear here.' : 'Try a different filter.');
+    grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+}
+
+function adminSearch(val) {
+  searchQuery = val.trim();
+  document.getElementById('search-clear').style.display = searchQuery ? 'block' : 'none';
+  renderOrders();
+}
+
+function adminClearSearch() {
+  searchQuery = '';
+  document.getElementById('order-search').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  renderOrders();
+}
+
+function statusLabel(s) {
+  return { confirmed: 'Pending', dispatched: 'Dispatched', delivered: 'Delivered', cancelled: 'Cancelled' }[s] || s;
+}
+
+function renderOrderCard(o) {
+  const addr = o.address || {};
+  const addrLine = [addr.addr1 || addr.line1, addr.addr2 || addr.line2, addr.city, addr.state, addr.pin || addr.pincode].filter(Boolean).join(', ');
+  const itemsHtml = (o.items || []).map(i => `
+    <div class="item-row">
+      <span class="item-name">${i.name}</span>
+      <span class="item-qty">×${i.qty}</span>
+      <span class="item-price">₹${(i.price * i.qty).toFixed(0)}</span>
+    </div>`).join('');
+
+  const time = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const pid = (o.paymentId || o._id || '').substring(0, 24);
+  const status = o.status || 'confirmed';
+  const statusBadge = `<span class="status-badge status-${status}">${statusLabel(status)}</span>`;
+
+  let actionBtns = '';
+  if (status === 'confirmed') {
+    actionBtns = `<button class="btn-status btn-dispatch" onclick="adminUpdateStatus('${o._id}','dispatched')">Mark Dispatched</button>
+      <button class="btn-status btn-deliver" onclick="adminUpdateStatus('${o._id}','delivered')">Mark Delivered</button>`;
+  } else if (status === 'dispatched') {
+    actionBtns = `<button class="btn-status btn-deliver" onclick="adminUpdateStatus('${o._id}','delivered')">Mark Delivered</button>`;
+  } else if (status === 'delivered') {
+    actionBtns = `<button class="btn-status btn-delivered-done" disabled>✓ Delivered</button>`;
+  }
+
+  const customerName = o.userName || addr.name || '—';
+  const customerPhone = o.userPhone || addr.phone || '—';
+
+  return `
+    <div class="order-card" id="card-${o._id}">
+      <div class="order-card-head">
+        <div class="order-meta">
+          <span class="order-time">${time}</span>
+          <span class="order-pid">${pid}</span>
+          ${statusBadge}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span class="order-total">₹${o.total || 0}</span>
+          <div class="status-actions">${actionBtns}</div>
+        </div>
+      </div>
+      <div class="order-card-body">
+        <div class="order-items-col">
+          <div class="col-title">Items Ordered</div>
+          ${itemsHtml}
+          <div style="padding-top:10px;font-size:13px;color:#888;border-top:1px solid #f0e6d3;margin-top:6px;">
+            Subtotal ₹${o.subtotal || 0} · Shipping ₹${o.shipping || 0} · <strong style="color:#333;">Total ₹${o.total || 0}</strong>
+          </div>
+        </div>
+        <div class="order-addr-col">
+          <div class="col-title">Customer & Delivery</div>
+          <div class="addr-name">${customerName}</div>
+          <div class="addr-phone">📱 ${customerPhone}</div>
+          ${o.userEmail ? `<div class="customer-email">✉ ${o.userEmail}</div>` : ''}
+          <div class="addr-line" style="margin-top:10px;">📍 ${addrLine || '—'}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function updateStatus(docId, newStatus) {
+  try {
+    await updateDoc(doc(db, 'all_orders', docId), { status: newStatus });
+    const o = allOrders.find(x => x._id === docId);
+    if (o) o.status = newStatus;
+    if (o && o.userPath && o.docId) {
+      try { await updateDoc(doc(db, o.userPath, o.docId), { status: newStatus }); } catch (_) {}
+    }
+    updateStats();
+    renderOrders();
+  } catch (e) {
+    alert('Error updating status: ' + e.message);
+  }
+}
+
+// ── Expose to global scope for onclick handlers ──
+window.checkPin = function() {
+  const val = document.getElementById('pin-input').value;
+  if (val === ADMIN_PIN) {
+    sessionStorage.setItem('mtr_admin', '1');
+    showAdminUI();
+    initDashboard();
+  } else {
+    document.getElementById('pin-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').focus();
+  }
+};
+window.lockAdmin = function() { sessionStorage.removeItem('mtr_admin'); location.reload(); };
+window.adminLoadOrders = loadOrders;
+window.adminSetFilter = setFilter;
+window.adminUpdateStatus = updateStatus;
+window.adminSearch = adminSearch;
+window.adminClearSearch = adminClearSearch;
+
+// ── Auto-unlock if session still active ──
+if (sessionStorage.getItem('mtr_admin') === '1') {
+  showAdminUI();
+  initDashboard();
+}
+</script>
+
+<script>
+// Load logo images from index.html
+(async function(){
+  try{
+    const html = await fetch('index.html').then(r=>r.text());
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html,'text/html');
+    const logoSrc = doc.querySelector('img.brand-logo')?.src;
+    const wordmarkSrc = doc.querySelector('img.brand-wordmark')?.src;
+    if(logoSrc) document.getElementById('admin-logo-img').src = logoSrc;
+    if(wordmarkSrc) document.getElementById('admin-wordmark-img').src = wordmarkSrc;
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>

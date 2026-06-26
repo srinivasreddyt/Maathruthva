@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -20,27 +20,53 @@
   a{text-decoration:none;color:inherit;} button{font-family:'Jost';cursor:pointer;} img{display:block;max-width:100%;}
   .announce{background:var(--light-sage);color:var(--sage-deep);text-align:center;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;font-weight:500;border-bottom:1px solid rgba(138,122,80,.18);}
   header{position:sticky;top:0;z-index:50;background:rgba(247,242,231,.93);backdrop-filter:blur(10px);border-bottom:1px solid rgba(138,122,80,.18);}
+  .header-wrap{position:sticky;top:0;z-index:50;}
   .nav{display:flex;align-items:center;justify-content:space-between;height:74px;gap:12px;}
   .nav-left{display:flex;align-items:center;gap:10px;min-width:0;}
   .brand-lockup{display:flex;align-items:center;gap:12px;min-width:0;}
   .brand-logo{width:50px;height:50px;border-radius:50%;object-fit:contain;background:#FBF8F0;padding:2px;box-shadow:0 3px 10px -3px rgba(74,104,48,.45);flex-shrink:0;}
   .brand-wordmark{height:40px;width:auto;max-width:100%;object-fit:contain;}
-  .nav-links{display:flex;gap:28px;list-style:none;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;font-weight:400;align-items:center;}
-  .nav-links a{color:var(--ink-soft);transition:color .2s;position:relative;}
+  .nav-links{display:flex;gap:18px;list-style:none;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:400;align-items:center;}
+  .nav-links a{color:var(--ink-soft);transition:color .2s;position:relative;white-space:nowrap;}
   .nav-links a:hover{color:var(--sage-deep);}
   .nav-actions{display:flex;gap:14px;align-items:center;flex-shrink:0;}
+  .nav-greeting{font-size:14px;color:#5a3e28;font-weight:500;}
   .icon-btn{background:none;border:none;color:var(--ink-soft);font-size:.8rem;letter-spacing:.06em;white-space:nowrap;}
-  .cart-pill{background:var(--sage);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;border:none;font-weight:500;transition:background .2s;white-space:nowrap;flex-shrink:0;}
+  .cart-pill{background:var(--sage);color:var(--paper);padding:9px 20px;border-radius:30px;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;border:none;font-weight:500;transition:background .2s;white-space:nowrap;flex-shrink:0;cursor:pointer;}
   .cart-pill:hover{background:var(--sage-deep);}
+  /* cart drawer */
+  .overlay{position:fixed;inset:0;background:rgba(47,40,20,.45);opacity:0;visibility:hidden;transition:.3s;z-index:900;}
+  .overlay.open{opacity:1;visibility:visible;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:380px;max-width:90vw;background:var(--paper);box-shadow:-4px 0 24px rgba(0,0,0,.12);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);z-index:901;display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:24px;border-bottom:1px solid rgba(138,122,80,.18);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-head h3{font-size:1.5rem;color:var(--sage-dark);font-family:'Cormorant Garamond',serif;}
+  .drawer-close{background:none;border:none;font-size:1.5rem;color:var(--ink-soft);cursor:pointer;}
+  .drawer-body{flex:1;overflow-y:auto;padding:20px 24px;}
+  .cart-line{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid rgba(138,122,80,.12);align-items:center;}
+  .cart-icon{width:54px;height:54px;border-radius:10px;background:var(--cream,#f5f0e8);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;}
+  .cart-line-info{flex:1;}.cart-line-info .nm{font-size:.92rem;font-weight:500;}
+  .cart-line-info .mt{font-size:.78rem;color:var(--olive);}
+  .cart-empty{text-align:center;color:var(--olive);padding:50px 20px;font-size:.95rem;}
+  .drawer-foot{padding:24px;border-top:1px solid rgba(138,122,80,.18);}
+  .drawer-total{display:flex;justify-content:space-between;margin-bottom:16px;font-size:1.05rem;}
+  .drawer-total strong{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--sage-dark);}
+  .checkout-btn{width:100%;background:var(--sage-deep);color:var(--paper);border:none;padding:15px;border-radius:10px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+  .checkout-btn:hover{background:var(--sage-dark);}
   .menu-toggle{display:none;background:none;border:none;font-size:1.6rem;line-height:1;color:var(--sage-deep);width:40px;height:40px;border-radius:10px;flex-shrink:0;align-items:center;justify-content:center;}
-  .mobile-menu{display:none;flex-direction:column;background:var(--paper);border-bottom:1px solid rgba(138,122,80,.18);overflow:hidden;max-height:0;transition:max-height .32s ease;}
-  .mobile-menu.open{max-height:420px;}
+  .mobile-menu{display:none;flex-direction:column;background:var(--paper);border-bottom:1px solid rgba(138,122,80,.18);overflow:hidden;max-height:0;transition:max-height .32s ease;position:absolute;top:100%;left:0;right:0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.12);}
+  .mobile-menu.open{max-height:700px;}
   .mobile-menu a{padding:15px 28px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);border-top:1px solid rgba(138,122,80,.1);}
   .mobile-menu a:first-child{border-top:none;} .mobile-menu a:hover{background:var(--light-sage);color:var(--sage-deep);}
+  .mob-cat-toggle{padding:15px 28px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;}
+  .mob-cat-toggle:hover{background:var(--light-sage);color:var(--sage-deep);}
+  #mob-cat-list a{padding:15px 28px 15px 36px;border-top:1px solid rgba(138,122,80,.1);display:block;}
+  .mob-cat-soon{display:flex;align-items:center;justify-content:space-between;padding:13px 28px 13px 36px;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:#bbb;border-top:1px solid rgba(138,122,80,.1);cursor:not-allowed;}
+  .soon-badge{font-size:10px;background:#e8e4dc;color:#aaa;padding:2px 8px;border-radius:8px;}
 
   /* hero */
   .hero{background:radial-gradient(ellipse at 70% 25%,rgba(220,231,196,.5),transparent 60%),var(--cream);text-align:center;padding:64px 0 54px;}
-  .hero-emblem{width:120px;height:120px;border-radius:50%;object-fit:contain;background:#FBF8F0;
+  .hero-emblem{width:220px;height:220px;border-radius:50%;object-fit:contain;background:#FBF8F0;
     padding:8px;box-shadow:0 12px 36px -12px rgba(74,104,48,.5);margin:0 auto 24px;}
   .hero-eyebrow{font-size:.76rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;font-weight:500;}
   .hero h1{font-size:3.8rem;color:var(--sage-dark);margin-bottom:18px;}
@@ -154,7 +180,7 @@
 
   /* ── Loading Indicator ── */
   #page-loader{
-    position:fixed;inset:0;z-index:9999;
+    position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:9999;
     background:var(--cream,#F7F2E7);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
     transition:opacity .6s ease, visibility .6s ease;
@@ -251,18 +277,24 @@
       <li><a href="#values">Why Us</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
-    <div class="nav-actions">
-      <button class="icon-btn account-btn">Account</button>
-      <button class="cart-pill" onclick="location.href='Food_Products.html'">Shop</button>
-    </div>
+    <div class="nav-actions" id="nav-actions"></div>
   </div>
   <nav class="mobile-menu" id="mobile-menu">
-    <a href="#categories" onclick="closeMenu()">Categories</a>
-    <a href="Food_Products.html" onclick="closeMenu()">Food Products</a>
+    <div class="mob-cat-toggle" onclick="toggleMobCat()">Categories <span id="mob-cat-arrow">&#9660;</span></div>
+    <div id="mob-cat-list" style="display:none;background:#f7f2ea;">
+      <a href="Food_Products.html" onclick="closeMenu()">Food Products</a>
+      <span class="mob-cat-soon">Snacks <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon">Skin &amp; Hair Care <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon">Clothes <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon">Toys <span class="soon-badge">Soon</span></span>
+      <span class="mob-cat-soon">Gifting <span class="soon-badge">Soon</span></span>
+    </div>
+    <a href="my-orders.html" id="mobile-my-orders-link" style="display:none;">My Orders</a>
     <a href="#values" onclick="closeMenu()">Why Us</a>
     <a href="#contact" onclick="closeMenu()">Contact</a>
   </nav>
 </header>
+<div id="mobile-greeting" style="display:none;padding:8px 20px;background:#fdf6ee;font-size:13px;color:#5a3e28;border-bottom:1px solid rgba(138,122,80,.12);position:sticky;top:0;z-index:49;justify-content:center;"></div>
 
 <section class="hero">
   <div class="wrap">
@@ -271,6 +303,7 @@
     <h1>Everything your baby needs,<br>made with a <em>mother's</em> care.</h1>
     <p>We started with wholesome baby food — and we're growing into a complete range of natural, thoughtfully made products. Explore what's here today, and what's on the way.</p>
     <a class="hero-btn" href="#categories">Shop by category</a>
+    <div style="margin-top:36px;width:60px;height:2px;background:rgba(138,122,80,.3);border-radius:2px;margin-left:auto;margin-right:auto;"></div>
   </div>
 </section>
 
@@ -444,6 +477,18 @@
 <script>
   function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open');}
   function closeMenu(){document.getElementById('mobile-menu').classList.remove('open');}
+  window.addEventListener('scroll',function(){closeMenu();},{passive:true});
+  document.addEventListener('click',function(e){
+    var menu=document.getElementById('mobile-menu');
+    var toggle=document.querySelector('.menu-toggle');
+    if(menu.classList.contains('open')&&!menu.contains(e.target)&&!toggle.contains(e.target)){closeMenu();}
+  });
+  function toggleMobCat(){
+    var list=document.getElementById('mob-cat-list');
+    var arrow=document.getElementById('mob-cat-arrow');
+    if(list.style.display==='none'){list.style.display='block';arrow.style.transform='rotate(180deg)';}
+    else{list.style.display='none';arrow.style.transform='';}
+  }
   let tt;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
 </script>
 
@@ -463,5 +508,125 @@
   })();
 </script>
 
+<script type="module">
+  if(new URLSearchParams(location.search).get('action')==='logout'){
+    history.replaceState({}, '', 'index.html');
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getAuth, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    const app = initializeApp({apiKey:"AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",authDomain:"maathruthva.firebaseapp.com",projectId:"maathruthva",storageBucket:"maathruthva.firebasestorage.app",messagingSenderId:"772318181453",appId:"1:772318181453:web:e736b87f53c264b8cf8404"});
+    await signOut(getAuth(app)).catch(()=>{});
+  }
+</script>
+
+<script>
+function logoutUser(){
+  localStorage.removeItem('mtr_user');
+  localStorage.removeItem('mtr_cart');
+  localStorage.removeItem('mtr_addresses');
+  location.href='index.html?action=logout';
+}
+(function(){
+  var u = localStorage.getItem('mtr_user');
+  var nav = document.getElementById('nav-actions');
+  var mob = document.getElementById('mobile-greeting');
+  var cartItems = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
+  var cartCount = cartItems.reduce(function(s,i){return s+(i.qty||1);},0);
+  var greetHtml = function(name){
+    return '<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;">'
+      +'<span class="nav-greeting" style="margin-bottom:2px;">Hi, '+name+'</span>'
+      +'<span style="font-size:11px;color:#888;">Not you? <u style="cursor:pointer;color:#5a3e28;" onclick="logoutUser()">Logout</u></span>'
+      +'</div>';
+  };
+  if(u){
+    try{
+      var data = JSON.parse(u);
+      var name = data.name || 'User';
+      if(window.innerWidth <= 920){
+        nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+        mob.style.display='flex';mob.style.alignItems='center';mob.style.gap='10px';
+        mob.style.top=(document.querySelector('header').offsetHeight)+'px';
+        mob.innerHTML = '<span>Hi, '+name+'</span><u style="font-size:12px;color:#888;cursor:pointer;" onclick="logoutUser()">Logout</u>';
+        var ol=document.getElementById('mobile-my-orders-link');
+        if(ol) ol.style.display='block';
+      } else {
+        nav.innerHTML = greetHtml(name)+'<a href="my-orders.html" style="font-size:13px;color:#b5451b;text-decoration:none;font-family:Jost,sans-serif;padding:7px 14px;border:1.5px solid #b5451b;border-radius:20px;">My Orders</a><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+      }
+    }catch(e){
+      nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+cartCount+')</button>';
+    }
+  } else {
+    nav.innerHTML = '<button class="cart-pill" onclick="location.href=\'login.html\'">Login</button>';
+  }
+})();
+
+function openCart(){
+  renderCartDrawer();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeCart(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+function renderCartDrawer(){
+  var items = JSON.parse(localStorage.getItem('mtr_cart')||'[]');
+  var body = document.getElementById('drawer-body');
+  var total = 0;
+  var PRODS = {
+    1:{name:'Natural Baby Food Mix',price:299,icon:'[NB]'},
+    2:{name:'Growth Mix',price:349,icon:'[GM]'},
+    3:{name:'Daily Millet Mix',price:349,icon:'[DM]'}
+  };
+  var ICONS = {'Natural Baby Food Mix':'[NB]','Growth Mix':'[GM]','Daily Millet Mix':'[DM]'};
+  if(!items.length){
+    body.innerHTML='<div class="cart-empty">Your cart is empty.<br>Add a formula to get started.</div>';
+    document.getElementById('cart-total').textContent='₹0';
+    return;
+  }
+  body.innerHTML = items.map(function(item){
+    var name, price, icon, sub, qty;
+    qty = item.qty || 1;
+    if(item.id && PRODS[item.id]){
+      // {id, qty} format (normalized by cart.html)
+      name = PRODS[item.id].name;
+      price = PRODS[item.id].price;
+      icon = PRODS[item.id].icon;
+      sub = '';
+    } else {
+      // {name, qty, price, sub} format (from product pages)
+      name = (item.name||'').replace(/ \(.*\)/,'');
+      price = item.price || 0;
+      icon = ICONS[name] || '🌿';
+      sub = item.sub || '';
+    }
+    var subtotal = price * qty;
+    total += subtotal;
+    return '<div class="cart-line">'
+      +'<div class="cart-icon">'+icon+'</div>'
+      +'<div class="cart-line-info">'
+        +'<div class="nm">'+name+'</div>'
+        +(sub ? '<div class="mt">'+sub+'</div>' : '')
+        +'<div class="mt">Qty: '+qty+' &nbsp;·&nbsp; ₹'+subtotal+'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  document.getElementById('cart-total').textContent='₹'+total;
+}
+</script>
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head"><h3>Your Cart</h3><button class="drawer-close" onclick="closeCart()">×</button></div>
+  <div class="drawer-body" id="drawer-body"><div class="cart-empty">Your cart is empty.</div></div>
+  <div class="drawer-foot">
+    <div class="drawer-total"><span>Subtotal</span><strong id="cart-total">₹0</strong></div>
+    <button class="checkout-btn" onclick="location.href='cart.html'">Proceed to Checkout</button>
+  </div>
+</aside>
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+const _a = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",authDomain:"maathruthva.firebaseapp.com",projectId:"maathruthva",storageBucket:"maathruthva.firebasestorage.app",messagingSenderId:"772318181453",appId:"1:772318181453:web:e736b87f53c264b8cf8404"});
+onAuthStateChanged(getAuth(_a),(u)=>{const s=JSON.parse(localStorage.getItem('mtr_user')||'null');if(!u&&s&&s.loggedIn&&!s.guest){localStorage.removeItem('mtr_user');localStorage.removeItem('mtr_addresses');location.reload();}});
+</script>
 </body>
 </html>
