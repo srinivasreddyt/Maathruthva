@@ -251,7 +251,7 @@
             oninput="onPhoneInput()" onkeydown="if(event.key==='Enter') sendOTP()">
         </div>
         <div class="hint" id="phone-hint">We'll send a 6-digit OTP to verify your number</div>
-        
+        <div id="recaptcha-container" style="margin:12px 0;display:flex;justify-content:center;"></div>
         <button class="btn-primary" id="btn-send-otp" onclick="sendOTP()" disabled>
           Send OTP <span>→</span>
         </button>
@@ -368,13 +368,13 @@ function onPhoneInput(){
 async function sendOTP(){
   PHONE=document.getElementById('phone-input').value.trim();
   if(PHONE.length!==10){showToast('Enter a valid 10-digit number');return;}
+  if(!window.sendOTPFirebase){
+    showToast('Firebase not loaded — please refresh the page and try again.');return;
+  }
   const btn=document.getElementById('btn-send-otp');
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
-    const resp=await fetch('https://maathruthva-backend.vercel.app/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:PHONE})});
-    const data=await resp.json();
-    if(!resp.ok){throw new Error(data.error||'Failed to send OTP');}
-    sessionStorage.setItem('mtr_otp',JSON.stringify({token:data.token,phone:PHONE}));
+    confirmationResult=await window.sendOTPFirebase('+91'+PHONE);
     const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
     document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
@@ -385,6 +385,7 @@ async function sendOTP(){
     startTimer();
   }catch(e){
     btn.disabled=false; btn.innerHTML='Send OTP <span>→</span>';
+    if(window.sendOTPFirebaseReset) window.sendOTPFirebaseReset();
     showToast(e.message||'Failed to send OTP. Try again.');
   }
 }
@@ -416,36 +417,30 @@ async function verifyOTP(){
   if(otp.length<6){showToast('Enter the 6-digit OTP');return;}
   const btn=document.getElementById('btn-verify');
   btn.disabled=true; btn.innerHTML='Verifying...';
+  window._otpVerifying=true;
   try{
-    const stored=JSON.parse(sessionStorage.getItem('mtr_otp')||'null');
-    if(!stored||stored.phone!==PHONE){throw new Error('Session expired. Please resend OTP.');}
-    const vresp=await fetch('https://maathruthva-backend.vercel.app/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:stored.token,otp,phone:PHONE})});
-    const vdata=await vresp.json();
-    if(!vresp.ok){throw new Error(vdata.error||'wrong');}
+    const result=await confirmationResult.confirm(otp);
     clearInterval(timerInterval);
-    sessionStorage.removeItem('mtr_otp');
-    const uid='phone_'+PHONE;
+    const uid=result.user.uid;
+    // Check if existing user has a name in Firestore
     const existingUser=window.fetchUserFromFirestore ? await window.fetchUserFromFirestore(uid) : null;
     if(existingUser&&existingUser.name){
+      // Existing user — login directly
       localStorage.setItem('mtr_user',JSON.stringify({loggedIn:true,name:existingUser.name,phone:PHONE,uid,loginTime:Date.now()}));
       showScreen('screen-success');
       animateDots();
       setTimeout(async()=>{const next=new URLSearchParams(location.search).get('next')||'index.html';if(window.mergeCartOnLogin)await window.mergeCartOnLogin(uid);location.href=next;},2000);
     } else {
+      // New user — collect name
       window._pendingUid=uid;
       showScreen('screen-name');
       setTimeout(()=>document.getElementById('name-input').focus(),300);
     }
   }catch(e){
     btn.disabled=false; btn.innerHTML='Verify &amp; Continue 🔒';
-    if(e.message==='wrong'){
-      [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.classList.add('error');setTimeout(()=>b.classList.remove('error'),600);});
-      document.getElementById('otp-hint').innerHTML='<span style="color:var(--red)">Incorrect OTP. Please try again.</span>';
-      document.getElementById('otp0').focus();
-    } else {
-      showToast(e.message);
-      showScreen('screen-phone');
-    }
+    [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.classList.add('error');setTimeout(()=>b.classList.remove('error'),600);});
+    document.getElementById('otp-hint').innerHTML='<span style="color:var(--red)">Incorrect OTP. Please try again.</span>';
+    document.getElementById('otp0').focus();
   }
 }
 
@@ -502,7 +497,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -515,6 +510,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  let rcVerifier = null;
 
   window.saveUserToFirestore = async function(uid, name, phone) {
     try {
@@ -546,6 +542,31 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
+  function initRecaptcha() {
+    try {
+      if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+      rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'normal',
+        callback: () => {
+          document.getElementById('btn-send-otp').disabled = false;
+        },
+        'expired-callback': () => {
+          document.getElementById('btn-send-otp').disabled = true;
+          initRecaptcha();
+        }
+      });
+      rcVerifier.render();
+    } catch(e) { console.error('reCAPTCHA init error:', e); }
+  }
+  initRecaptcha();
+
+  window.sendOTPFirebase = async function(phone) {
+    if (!rcVerifier) initRecaptcha();
+    return signInWithPhoneNumber(auth, phone, rcVerifier);
+  };
+  window.sendOTPFirebaseReset = function() {
+    initRecaptcha();
+  };
   window.googleSignInFirebase = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -560,7 +581,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     // Auto-redirect only on page load (not during active OTP verification)
     let initialCheck = true;
     onAuthStateChanged(auth, async (user) => {
-      if (user && initialCheck) {
+      if (user && initialCheck && !window._otpVerifying) {
         // Refresh localStorage with latest name from Firebase
         const existing = JSON.parse(localStorage.getItem('mtr_user') || '{}');
         const name = user.displayName || existing.name || '';
