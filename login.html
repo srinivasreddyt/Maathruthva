@@ -576,7 +576,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
           email: user.email || existing.email || '',
           phone: user.phoneNumber || existing.phone || '',
           name: name,
-          loginTime: existing.loginTime || Date.now()
+          loginTime: Date.now()
         }));
         const next = new URLSearchParams(location.search).get('next') || 'index.html';
         if (window.mergeCartOnLogin) await window.mergeCartOnLogin(user.uid);

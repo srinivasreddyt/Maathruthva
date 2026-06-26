@@ -800,7 +800,7 @@ async function saveAddress(){
 async function goToAddress(){
   if(!cart.filter(c=>c.qty>0).length){ showToast('Your cart is empty'); return; }
   const user = JSON.parse(localStorage.getItem('mtr_user')||'null');
-  const loggedIn = user && (user.loggedIn||user.guest) && (Date.now()-user.loginTime)<86400000;
+  const loggedIn = user && (user.loggedIn||user.guest) && (Date.now()-user.loginTime)<604800000;
   if(!loggedIn){ location.href='login.html?next=cart.html'; return; }
   document.getElementById('section-cart').style.display='none';
   document.getElementById('section-address').style.display='block';
@@ -935,7 +935,7 @@ async function initPayment(){
         items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return{name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
         subtotal, discount: promoDiscount, shipping, total: totalPaise/100,
-        userPhone: user.phone||'', userId: user.uid||'guest', status:'confirmed'
+        userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
       };
       if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
       document.getElementById('order-id-display').textContent='Order ID: '+response.razorpay_payment_id;
