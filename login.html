@@ -374,7 +374,7 @@ async function sendOTP(){
     const resp=await fetch('https://maathruthva-backend.vercel.app/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:PHONE})});
     const data=await resp.json();
     if(!resp.ok){throw new Error(data.error||'Failed to send OTP');}
-    sessionStorage.setItem('mtr_otp',JSON.stringify({sessionId:data.sessionId,phone:PHONE,expiry:Date.now()+300000}));
+    sessionStorage.setItem('mtr_otp',JSON.stringify({token:data.token,phone:PHONE}));
     const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
     document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
@@ -419,8 +419,7 @@ async function verifyOTP(){
   try{
     const stored=JSON.parse(sessionStorage.getItem('mtr_otp')||'null');
     if(!stored||stored.phone!==PHONE){throw new Error('Session expired. Please resend OTP.');}
-    if(Date.now()>stored.expiry){sessionStorage.removeItem('mtr_otp');throw new Error('OTP expired. Please resend.');}
-    const vresp=await fetch('https://maathruthva-backend.vercel.app/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:stored.sessionId,otp})});
+    const vresp=await fetch('https://maathruthva-backend.vercel.app/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:stored.token,otp,phone:PHONE})});
     const vdata=await vresp.json();
     if(!vresp.ok){throw new Error(vdata.error||'wrong');}
     clearInterval(timerInterval);
