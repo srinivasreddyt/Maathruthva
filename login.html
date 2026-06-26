@@ -251,7 +251,7 @@
             oninput="onPhoneInput()" onkeydown="if(event.key==='Enter') sendOTP()">
         </div>
         <div class="hint" id="phone-hint">We'll send a 6-digit OTP to verify your number</div>
-        <div id="recaptcha-container" style="margin:12px 0;display:flex;justify-content:center;"></div>
+        <div id="recaptcha-container" style="display:none;"></div>
         <button class="btn-primary" id="btn-send-otp" onclick="sendOTP()" disabled>
           Send OTP <span>→</span>
         </button>
@@ -546,14 +546,8 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     try {
       if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
       rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'normal',
-        callback: () => {
-          document.getElementById('btn-send-otp').disabled = false;
-        },
-        'expired-callback': () => {
-          document.getElementById('btn-send-otp').disabled = true;
-          initRecaptcha();
-        }
+        size: 'invisible',
+        callback: () => {}
       });
       rcVerifier.render();
     } catch(e) { console.error('reCAPTCHA init error:', e); }
