@@ -425,6 +425,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
     authDomain: "maathruthva.firebaseapp.com",
@@ -435,6 +436,17 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // If Firebase session expires, clear localStorage and redirect to login
+  onAuthStateChanged(auth, (firebaseUser) => {
+    const stored = JSON.parse(localStorage.getItem('mtr_user') || 'null');
+    if (!firebaseUser && stored && stored.loggedIn && !stored.guest) {
+      localStorage.removeItem('mtr_user');
+      localStorage.removeItem('mtr_addresses');
+      location.href = 'login.html?next=cart.html';
+    }
+  });
 
   window.saveOrderToFirestore = async function(orderData) {
     try {

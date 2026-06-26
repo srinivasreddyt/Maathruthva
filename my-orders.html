@@ -99,6 +99,7 @@
 <script type="module">
   import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, getDocs, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -111,12 +112,24 @@
 
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
 
-  const user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   const container = document.getElementById('orders-container');
   const sub = document.getElementById('orders-sub');
 
+  // Check Firebase Auth state — if session expired, clear localStorage and treat as logged out
+  onAuthStateChanged(auth, (firebaseUser) => {
+    const stored = JSON.parse(localStorage.getItem('mtr_user') || 'null');
+    if (!firebaseUser && stored && stored.loggedIn && !stored.guest) {
+      // Firebase session expired — clear local session
+      localStorage.removeItem('mtr_user');
+      localStorage.removeItem('mtr_addresses');
+    }
+    loadOrders();
+  });
+
   async function loadOrders() {
+  const user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   if (!user || !user.uid || user.guest) {
     container.innerHTML = `
       <div class="state-box">
