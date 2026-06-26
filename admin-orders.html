@@ -54,11 +54,19 @@
     .dot-delivered{background:#6f42c1;}
 
     /* ── Filter tabs ── */
-    .filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+    .filter-tabs{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
     .tab{padding:7px 18px;border-radius:20px;font-size:13px;cursor:pointer;border:1.5px solid #e0d8cc;background:#fff;color:#666;font-family:'Jost',sans-serif;transition:.2s;}
     .tab.active{background:#b5451b;border-color:#b5451b;color:#fff;}
     .tab-count{display:inline-block;background:rgba(255,255,255,.3);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;}
     .tab:not(.active) .tab-count{background:#f0e6d3;color:#b5451b;}
+    .search-wrap{margin-left:auto;position:relative;display:flex;align-items:center;}
+    .search-input{padding:7px 16px 7px 36px;border:1.5px solid #e0d8cc;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;color:#333;background:#fff;outline:none;width:240px;transition:.2s;}
+    .search-input:focus{border-color:#b5451b;width:280px;}
+    .search-input::placeholder{color:#bbb;}
+    .search-icon{position:absolute;left:12px;color:#bbb;font-size:14px;pointer-events:none;}
+    .search-clear{position:absolute;right:10px;color:#bbb;font-size:16px;cursor:pointer;display:none;line-height:1;}
+    .search-clear:hover{color:#b5451b;}
+    @media(max-width:768px){.search-wrap{margin-left:0;width:100%;}.search-input{width:100%;}.search-input:focus{width:100%;}}
 
     /* ── Order cards ── */
     .orders-grid{display:flex;flex-direction:column;gap:14px;}
@@ -191,6 +199,11 @@
     <button class="tab" data-filter="confirmed" onclick="adminSetFilter('confirmed')">Pending <span class="tab-count" id="cnt-confirmed">0</span></button>
     <button class="tab" data-filter="dispatched" onclick="adminSetFilter('dispatched')">Dispatched <span class="tab-count" id="cnt-dispatched">0</span></button>
     <button class="tab" data-filter="delivered" onclick="adminSetFilter('delivered')">Delivered <span class="tab-count" id="cnt-delivered">0</span></button>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="order-search" type="text" placeholder="Search by name, email or order ID…" oninput="adminSearch(this.value)">
+      <span class="search-clear" id="search-clear" onclick="adminClearSearch()">×</span>
+    </div>
   </div>
 
   <!-- Orders -->
@@ -220,6 +233,7 @@ const db = getFirestore(app);
 
 let allOrders = [];
 let currentFilter = 'all';
+let searchQuery = '';
 
 // ── All functions defined first ──
 
@@ -280,20 +294,47 @@ function updateStats() {
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+  // Clear search when switching tabs
+  searchQuery = '';
+  const si = document.getElementById('order-search');
+  if(si) si.value = '';
+  const sc = document.getElementById('search-clear');
+  if(sc) sc.style.display = 'none';
   renderOrders();
 }
 
 function renderOrders() {
   const grid = document.getElementById('orders-grid');
-  const filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+  let filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(o => {
+      const name = (o.customerName || o.name || '').toLowerCase();
+      const email = (o.customerEmail || o.email || '').toLowerCase();
+      const pid = (o.razorpayPaymentId || o._id || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || pid.includes(q);
+    });
+  }
   if (!filtered.length) {
-    grid.innerHTML = `<div class="empty-state">
-      <h3>${currentFilter === 'all' ? 'No orders today' : 'No orders in this category'}</h3>
-      <p>${currentFilter === 'all' ? 'Orders placed today will appear here.' : 'Try a different filter.'}</p>
-    </div>`;
+    const msg = searchQuery ? 'No orders match your search' : (currentFilter === 'all' ? 'No orders today' : 'No orders in this category');
+    const sub = searchQuery ? 'Try a different name, email or order ID.' : (currentFilter === 'all' ? 'Orders placed today will appear here.' : 'Try a different filter.');
+    grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
     return;
   }
   grid.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+}
+
+function adminSearch(val) {
+  searchQuery = val.trim();
+  document.getElementById('search-clear').style.display = searchQuery ? 'block' : 'none';
+  renderOrders();
+}
+
+function adminClearSearch() {
+  searchQuery = '';
+  document.getElementById('order-search').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  renderOrders();
 }
 
 function statusLabel(s) {
@@ -392,6 +433,8 @@ window.lockAdmin = function() { sessionStorage.removeItem('mtr_admin'); location
 window.adminLoadOrders = loadOrders;
 window.adminSetFilter = setFilter;
 window.adminUpdateStatus = updateStatus;
+window.adminSearch = adminSearch;
+window.adminClearSearch = adminClearSearch;
 
 // ── Auto-unlock if session still active ──
 if (sessionStorage.getItem('mtr_admin') === '1') {
