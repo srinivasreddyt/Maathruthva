@@ -24,7 +24,8 @@
     /* ── Header ── */
     header{background:#fff;border-bottom:1px solid #e8dfd0;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
     .admin-brand{display:flex;align-items:center;gap:12px;}
-    .admin-brand-name{font-family:'Cormorant Garamond',serif;font-size:22px;color:#b5451b;font-weight:600;}
+    .brand-logo{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#FBF8F0;padding:2px;box-shadow:0 3px 10px -3px rgba(74,104,48,.45);flex-shrink:0;}
+    .brand-wordmark{height:34px;width:auto;max-width:160px;object-fit:contain;}
     .admin-badge{font-size:11px;background:#fff3cd;color:#856404;padding:3px 10px;border-radius:20px;font-weight:500;border:1px solid #ffc107;}
     .logout-btn{background:none;border:1.5px solid #ccc;color:#666;padding:7px 16px;border-radius:20px;font-size:13px;cursor:pointer;font-family:'Jost',sans-serif;}
     .logout-btn:hover{border-color:#b5451b;color:#b5451b;}
@@ -142,7 +143,10 @@
 <!-- Header -->
 <header id="admin-header" style="display:none;">
   <div class="admin-brand">
-    <div class="admin-brand-name">Maathruthva</div>
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <img class="brand-logo" src="" id="admin-logo-img" alt="Maathruthva">
+      <img class="brand-wordmark" src="" id="admin-wordmark-img" alt="Maathruthva">
+    </a>
     <span class="admin-badge">Admin</span>
   </div>
   <button class="logout-btn" onclick="lockAdmin()">Lock</button>
@@ -394,6 +398,21 @@ if (sessionStorage.getItem('mtr_admin') === '1') {
   showAdminUI();
   initDashboard();
 }
+</script>
+
+<script>
+// Load logo images from index.html
+(async function(){
+  try{
+    const html = await fetch('index.html').then(r=>r.text());
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html,'text/html');
+    const logoSrc = doc.querySelector('img.brand-logo')?.src;
+    const wordmarkSrc = doc.querySelector('img.brand-wordmark')?.src;
+    if(logoSrc) document.getElementById('admin-logo-img').src = logoSrc;
+    if(wordmarkSrc) document.getElementById('admin-wordmark-img').src = wordmarkSrc;
+  }catch(e){}
+})();
 </script>
 
 </body>
