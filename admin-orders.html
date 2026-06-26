@@ -49,8 +49,8 @@
     .stat-label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.06em;}
     .stat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
     .dot-pending{background:#f39c12;}
-    .dot-out{background:#2980b9;}
     .dot-dispatched{background:#27ae60;}
+    .dot-delivered{background:#6f42c1;}
 
     /* ── Filter tabs ── */
     .filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
@@ -72,18 +72,18 @@
     /* Status badge */
     .status-badge{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;white-space:nowrap;}
     .status-confirmed{background:#fff3cd;color:#856404;}
-    .status-out_for_delivery{background:#d1ecf1;color:#0c5460;}
     .status-dispatched{background:#d4edda;color:#155724;}
+    .status-delivered{background:#e8d5f5;color:#4a235a;}
     .status-cancelled{background:#f8d7da;color:#721c24;}
 
     /* Status buttons */
     .status-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
     .btn-status{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid;font-family:'Jost',sans-serif;transition:.2s;white-space:nowrap;}
-    .btn-out{border-color:#2980b9;color:#2980b9;background:#fff;}
-    .btn-out:hover{background:#2980b9;color:#fff;}
     .btn-dispatch{border-color:#27ae60;color:#27ae60;background:#fff;}
     .btn-dispatch:hover{background:#27ae60;color:#fff;}
-    .btn-dispatched-done{border-color:#aaa;color:#aaa;background:#f9f9f9;cursor:default;}
+    .btn-deliver{border-color:#6f42c1;color:#6f42c1;background:#fff;}
+    .btn-deliver:hover{background:#6f42c1;color:#fff;}
+    .btn-delivered-done{border-color:#aaa;color:#aaa;background:#f9f9f9;cursor:default;}
 
     /* Order body */
     .order-card-body{display:grid;grid-template-columns:1fr 1fr;gap:0;}
@@ -176,8 +176,8 @@
       <div class="stat-label"><span class="stat-dot dot-pending"></span>Pending</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="stat-dispatched">—</div>
-      <div class="stat-label"><span class="stat-dot dot-dispatched"></span>Dispatched</div>
+      <div class="stat-val" id="stat-delivered">—</div>
+      <div class="stat-label"><span class="stat-dot dot-delivered"></span>Delivered</div>
     </div>
   </div>
 
@@ -185,8 +185,8 @@
   <div class="filter-tabs">
     <button class="tab active" data-filter="all" onclick="adminSetFilter('all')">All <span class="tab-count" id="cnt-all">0</span></button>
     <button class="tab" data-filter="confirmed" onclick="adminSetFilter('confirmed')">Pending <span class="tab-count" id="cnt-confirmed">0</span></button>
-    <button class="tab" data-filter="out_for_delivery" onclick="adminSetFilter('out_for_delivery')">Out for Delivery <span class="tab-count" id="cnt-out_for_delivery">0</span></button>
     <button class="tab" data-filter="dispatched" onclick="adminSetFilter('dispatched')">Dispatched <span class="tab-count" id="cnt-dispatched">0</span></button>
+    <button class="tab" data-filter="delivered" onclick="adminSetFilter('delivered')">Delivered <span class="tab-count" id="cnt-delivered">0</span></button>
   </div>
 
   <!-- Orders -->
@@ -259,18 +259,18 @@ function updateStats() {
   const total = allOrders.length;
   const revenue = allOrders.reduce((s, o) => s + (o.total || 0), 0);
   const pending = allOrders.filter(o => o.status === 'confirmed').length;
-  const outDelivery = allOrders.filter(o => o.status === 'out_for_delivery').length;
   const dispatched = allOrders.filter(o => o.status === 'dispatched').length;
+  const delivered = allOrders.filter(o => o.status === 'delivered').length;
 
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-revenue').textContent = '₹' + revenue.toFixed(0);
-  document.getElementById('stat-pending').textContent = pending + outDelivery;
-  document.getElementById('stat-dispatched').textContent = dispatched;
+  document.getElementById('stat-pending').textContent = pending + dispatched;
+  document.getElementById('stat-delivered').textContent = delivered;
 
   document.getElementById('cnt-all').textContent = total;
   document.getElementById('cnt-confirmed').textContent = pending;
-  document.getElementById('cnt-out_for_delivery').textContent = outDelivery;
   document.getElementById('cnt-dispatched').textContent = dispatched;
+  document.getElementById('cnt-delivered').textContent = delivered;
 }
 
 function setFilter(f) {
@@ -293,7 +293,7 @@ function renderOrders() {
 }
 
 function statusLabel(s) {
-  return { confirmed: 'Pending', out_for_delivery: 'Out for Delivery', dispatched: 'Dispatched', cancelled: 'Cancelled' }[s] || s;
+  return { confirmed: 'Pending', dispatched: 'Dispatched', delivered: 'Delivered', cancelled: 'Cancelled' }[s] || s;
 }
 
 function renderOrderCard(o) {
@@ -313,13 +313,12 @@ function renderOrderCard(o) {
 
   let actionBtns = '';
   if (status === 'confirmed') {
-    actionBtns = `
-      <button class="btn-status btn-out" onclick="adminUpdateStatus('${o._id}','out_for_delivery')">Out for Delivery</button>
-      <button class="btn-status btn-dispatch" onclick="adminUpdateStatus('${o._id}','dispatched')">Mark Dispatched</button>`;
-  } else if (status === 'out_for_delivery') {
-    actionBtns = `<button class="btn-status btn-dispatch" onclick="adminUpdateStatus('${o._id}','dispatched')">Mark Dispatched</button>`;
+    actionBtns = `<button class="btn-status btn-dispatch" onclick="adminUpdateStatus('${o._id}','dispatched')">Mark Dispatched</button>
+      <button class="btn-status btn-deliver" onclick="adminUpdateStatus('${o._id}','delivered')">Mark Delivered</button>`;
   } else if (status === 'dispatched') {
-    actionBtns = `<button class="btn-status btn-dispatched-done" disabled>✓ Dispatched</button>`;
+    actionBtns = `<button class="btn-status btn-deliver" onclick="adminUpdateStatus('${o._id}','delivered')">Mark Delivered</button>`;
+  } else if (status === 'delivered') {
+    actionBtns = `<button class="btn-status btn-delivered-done" disabled>✓ Delivered</button>`;
   }
 
   const customerName = o.userName || addr.name || '—';
