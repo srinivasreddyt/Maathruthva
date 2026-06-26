@@ -373,7 +373,7 @@ async function sendOTP(){
   try{
     const otp=Math.floor(100000+Math.random()*900000).toString();
     sessionStorage.setItem('mtr_otp',JSON.stringify({code:otp,phone:PHONE,expiry:Date.now()+300000}));
-    const resp=await fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:PHONE,otp})});
+    const resp=await fetch('https://maathruthva-backend.vercel.app/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:PHONE,otp})});
     const data=await resp.json();
     if(!resp.ok){throw new Error(data.error||'Failed to send OTP');}
     const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
