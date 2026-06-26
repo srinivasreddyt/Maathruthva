@@ -571,7 +571,7 @@ function renderCart(){
     if(pageGrid){ pageGrid.style.gridTemplateColumns = '1fr'; pageGrid.style.maxWidth = '640px'; pageGrid.style.margin = '0 auto'; }
     updateSummary(); saveCart(); return;
   }
-  if(summaryCol) summaryCol.style.display = window.innerWidth <= 860 ? 'none' : '';
+  if(summaryCol) summaryCol.style.display = '';
   const mab = document.getElementById('mobile-select-addr-btn');
   if(mab) mab.style.display = window.innerWidth <= 860 ? 'block' : 'none';
   if(pageGrid){ pageGrid.style.gridTemplateColumns = ''; pageGrid.style.maxWidth = ''; pageGrid.style.margin = ''; }
@@ -793,7 +793,7 @@ async function saveAddress(){
   if(_addBtn) _addBtn.style.display='';
   // Show summary now that addresses exist
   const _sc=document.getElementById('order-summary-col');
-  if(_sc && window.innerWidth<=860) _sc.style.display='';
+  if(_sc && window.innerWidth<=860) _sc.style.display='none';
   const _mcpb=document.getElementById('mobile-continue-payment-btn');
   if(_mcpb && window.innerWidth<=860) _mcpb.style.display='block';
   renderAddresses();
@@ -815,7 +815,7 @@ async function goToAddress(){
   currentSection='address';
   // On mobile: show summary only if addresses exist, hide if showing blank form
   const sc=document.getElementById('order-summary-col');
-  if(sc && window.innerWidth<=860) sc.style.display = addresses.length ? '' : 'none';
+  if(sc && window.innerWidth<=860) sc.style.display = 'none';
   const mcpb=document.getElementById('mobile-continue-payment-btn');
   if(mcpb && window.innerWidth<=860) mcpb.style.display = addresses.length ? 'block' : 'none';
   // Fetch saved addresses from Firestore for logged-in users
@@ -852,7 +852,7 @@ function backToCart(){
   window.scrollTo({top:0, behavior:'smooth'});
   // Hide summary on mobile when back on cart step
   const sc=document.getElementById('order-summary-col');
-  if(sc && window.innerWidth<=860) sc.style.display='none';
+  if(sc) sc.style.display='';
   const mab=document.getElementById('mobile-select-addr-btn');
   if(mab && window.innerWidth<=860) mab.style.display='block';
   const mcpb2=document.getElementById('mobile-continue-payment-btn');
