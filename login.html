@@ -251,7 +251,7 @@
             oninput="onPhoneInput()" onkeydown="if(event.key==='Enter') sendOTP()">
         </div>
         <div class="hint" id="phone-hint">We'll send a 6-digit OTP to verify your number</div>
-        <div id="recaptcha-container"></div>
+        <div id="recaptcha-container" style="margin:12px 0;display:flex;justify-content:center;"></div>
         <button class="btn-primary" id="btn-send-otp" onclick="sendOTP()" disabled>
           Send OTP <span>→</span>
         </button>
@@ -542,14 +542,18 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
-  // Pre-render reCAPTCHA on load so it's ready when user clicks Send OTP
   function initRecaptcha() {
     try {
       if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
       rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {},
-        'expired-callback': () => { initRecaptcha(); }
+        size: 'normal',
+        callback: () => {
+          document.getElementById('btn-send-otp').disabled = false;
+        },
+        'expired-callback': () => {
+          document.getElementById('btn-send-otp').disabled = true;
+          initRecaptcha();
+        }
       });
       rcVerifier.render();
     } catch(e) { console.error('reCAPTCHA init error:', e); }
@@ -558,16 +562,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 
   window.sendOTPFirebase = async function(phone) {
     if (!rcVerifier) initRecaptcha();
-    try {
-      return await signInWithPhoneNumber(auth, phone, rcVerifier);
-    } catch(e) {
-      if (e.code === 'auth/internal-error' || e.code === 'auth/captcha-check-failed' || (e.message && e.message.includes('reCAPTCHA'))) {
-        initRecaptcha();
-        await new Promise(r => setTimeout(r, 1000));
-        return await signInWithPhoneNumber(auth, phone, rcVerifier);
-      }
-      throw e;
-    }
+    return signInWithPhoneNumber(auth, phone, rcVerifier);
   };
   window.sendOTPFirebaseReset = function() {
     initRecaptcha();
