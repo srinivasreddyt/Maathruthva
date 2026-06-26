@@ -1012,6 +1012,21 @@ renderCart();
         try { await setDoc(_ref, {items, updatedAt: serverTimestamp()}); console.log('[Cart] Saved OK'); } catch(e) { console.error('[Cart] Save error:', e); }
       };
       if(window._cartPending){ window.saveCartToFirestore(window._cartPending); window._cartPending=null; }
+      // Sync cart from Firestore on page load (Firebase is source of truth for logged-in users)
+      const {getDoc} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const _snap = await getDoc(_ref);
+      if(_snap.exists()){
+        const fbItems = _snap.data().items || [];
+        if(fbItems.length){
+          var _nameToId = {'Natural Baby Food Mix':1,'Growth Mix':2,'Daily Millet Mix':3};
+          var _merged = fbItems.map(function(c){
+            if(c.id) return c;
+            var base=(c.name||'').replace(/ \(.*\)/,'');
+            return {id:_nameToId[base]||0,qty:c.qty||1};
+          }).filter(function(c){return c.id>0;});
+          if(_merged.length){ cart=_merged; localStorage.setItem('mtr_cart',JSON.stringify(fbItems)); renderCart(); }
+        }
+      }
     } catch(e) { console.error('Cart Firestore init:', e); }
   }
 })();
