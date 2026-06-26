@@ -542,14 +542,35 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
-  // Expose a single wrapper so regular scripts never touch auth/RecaptchaVerifier directly
+  // Pre-render reCAPTCHA on load so it's ready when user clicks Send OTP
+  function initRecaptcha() {
+    try {
+      if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+      rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {},
+        'expired-callback': () => { initRecaptcha(); }
+      });
+      rcVerifier.render();
+    } catch(e) { console.error('reCAPTCHA init error:', e); }
+  }
+  initRecaptcha();
+
   window.sendOTPFirebase = async function(phone) {
-    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
-    rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-    return signInWithPhoneNumber(auth, phone, rcVerifier);
+    if (!rcVerifier) initRecaptcha();
+    try {
+      return await signInWithPhoneNumber(auth, phone, rcVerifier);
+    } catch(e) {
+      if (e.code === 'auth/internal-error' || e.code === 'auth/captcha-check-failed' || (e.message && e.message.includes('reCAPTCHA'))) {
+        initRecaptcha();
+        await new Promise(r => setTimeout(r, 1000));
+        return await signInWithPhoneNumber(auth, phone, rcVerifier);
+      }
+      throw e;
+    }
   };
   window.sendOTPFirebaseReset = function() {
-    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+    initRecaptcha();
   };
   window.googleSignInFirebase = async function() {
     const provider = new GoogleAuthProvider();
