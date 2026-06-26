@@ -386,8 +386,7 @@ async function sendOTP(){
   }catch(e){
     btn.disabled=false; btn.innerHTML='Send OTP <span>→</span>';
     if(window.sendOTPFirebaseReset) window.sendOTPFirebaseReset();
-    console.error('Firebase OTP error code:', e.code, 'message:', e.message);
-    showToast((e.code||'')+' '+( e.message||'Failed to send OTP. Try again.'));
+    showToast(e.message||'Failed to send OTP. Try again.');
   }
 }
 
