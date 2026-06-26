@@ -542,23 +542,16 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
-  function initRecaptcha() {
-    try {
-      if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
-      rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {}
-      });
-    } catch(e) { console.error('reCAPTCHA init error:', e); }
-  }
-  initRecaptcha();
-
   window.sendOTPFirebase = async function(phone) {
-    if (!rcVerifier) initRecaptcha();
+    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+    rcVerifier = new RecaptchaVerifier(auth, 'btn-send-otp', {
+      size: 'invisible',
+      callback: () => {}
+    });
     return signInWithPhoneNumber(auth, phone, rcVerifier);
   };
   window.sendOTPFirebaseReset = function() {
-    initRecaptcha();
+    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
   };
   window.googleSignInFirebase = async function() {
     const provider = new GoogleAuthProvider();
