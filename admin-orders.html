@@ -309,10 +309,11 @@ function renderOrders() {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(o => {
-      const name = (o.customerName || o.name || '').toLowerCase();
-      const email = (o.customerEmail || o.email || '').toLowerCase();
-      const pid = (o.razorpayPaymentId || o._id || '').toLowerCase();
-      return name.includes(q) || email.includes(q) || pid.includes(q);
+      const name = (o.userName || o.address?.name || '').toLowerCase();
+      const email = (o.userEmail || '').toLowerCase();
+      const phone = (o.userPhone || o.address?.phone || '').toLowerCase();
+      const pid = (o.paymentId || o._id || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || phone.includes(q) || pid.includes(q);
     });
   }
   if (!filtered.length) {
