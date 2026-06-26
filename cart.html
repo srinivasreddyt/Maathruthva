@@ -975,7 +975,7 @@ async function initPayment(){
   rzp.open();
 }
 
-function closeModal(){ document.getElementById('success-modal').classList.remove('open'); }
+function closeModal(){ document.getElementById('success-modal').classList.remove('open'); location.href='index.html'; }
 let tt; function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
 
 // Render cart immediately from localStorage
