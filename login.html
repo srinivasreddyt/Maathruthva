@@ -418,6 +418,7 @@ async function verifyOTP(){
   btn.disabled=true; btn.innerHTML='Verifying...';
   window._otpVerifying=true;
   try{
+    if(!confirmationResult){showToast('Session expired. Please resend OTP.');btn.disabled=false;btn.innerHTML='Verify &amp; Continue 🔒';return;}
     const result=await confirmationResult.confirm(otp);
     clearInterval(timerInterval);
     const uid=result.user.uid;
