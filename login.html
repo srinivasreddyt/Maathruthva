@@ -261,6 +261,7 @@
 
       <!-- Screen 2: OTP entry -->
       <div class="screen" id="screen-otp">
+        <div id="otp-greeting" style="font-size:1.1rem;font-weight:600;color:var(--ink);margin-bottom:2px;display:none;"></div>
         <div>Enter the 6-digit OTP sent to</div>
         <div class="otp-target" id="otp-target">📱 +91 XXXXXXXXXX</div>
         <div class="otp-boxes">
@@ -379,6 +380,11 @@ async function sendOTP(){
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
     document.getElementById('btn-verify').disabled=true;
     document.getElementById('otp-hint').textContent='';
+    // Show greeting if returning user
+    const greetEl=document.getElementById('otp-greeting');
+    const existingUser=window.fetchUserFromFirestore?await window.fetchUserFromFirestore('phone_'+PHONE):null;
+    if(existingUser&&existingUser.name){greetEl.textContent='Hey, '+existingUser.name+'!';greetEl.style.display='block';}
+    else{greetEl.style.display='none';}
     showScreen('screen-otp');
     showToast('OTP sent successfully!');
     setTimeout(()=>document.getElementById('otp0').focus(),350);
