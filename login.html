@@ -543,8 +543,14 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
+  function resetRecaptcha() {
+    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+    const el = document.getElementById('recaptcha-container');
+    if (el) el.innerHTML = '';
+  }
   function getRecaptchaVerifier() {
     if (!rcVerifier) {
+      document.getElementById('recaptcha-container').innerHTML = '';
       rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {}
@@ -555,11 +561,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   window.sendOTPFirebase = async function(phone) {
     return signInWithPhoneNumber(auth, phone, getRecaptchaVerifier());
   };
-  window.sendOTPFirebaseReset = function() {
-    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
-    const el = document.getElementById('recaptcha-container');
-    if (el) el.innerHTML = '';
-  };
+  window.sendOTPFirebaseReset = resetRecaptcha;
   window.googleSignInFirebase = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
