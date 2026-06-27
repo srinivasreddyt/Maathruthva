@@ -382,7 +382,7 @@ async function sendOTP(){
     document.getElementById('otp-hint').textContent='';
     // Show greeting if returning user
     const greetEl=document.getElementById('otp-greeting');
-    const existingUser=window.fetchUserFromFirestore?await window.fetchUserFromFirestore('phone_'+PHONE):null;
+    const existingUser=window.fetchUserByPhone?await window.fetchUserByPhone('+91'+PHONE):null;
     if(existingUser&&existingUser.name){greetEl.textContent='Hey, '+existingUser.name+'!';greetEl.style.display='block';}
     else{greetEl.style.display='none';}
     showScreen('screen-otp');
@@ -510,7 +510,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = {
     apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
     authDomain: "maathruthva.firebaseapp.com",
@@ -535,6 +535,14 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
       const snap = await getDoc(doc(db, 'users', uid));
       return snap.exists() ? snap.data() : null;
     } catch(e) { console.error('Fetch user error:', e); return null; }
+  };
+
+  window.fetchUserByPhone = async function(phone) {
+    try {
+      const q = query(collection(db, 'users'), where('phone', '==', phone));
+      const snap = await getDocs(q);
+      return snap.empty ? null : snap.docs[0].data();
+    } catch(e) { console.error('Fetch user by phone error:', e); return null; }
   };
 
   window.mergeCartOnLogin = async function(uid) {
