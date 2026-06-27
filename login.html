@@ -482,9 +482,10 @@ async function googleSignIn(){
 // ── Resend timer ──
 function startTimer(){
   clearInterval(timerInterval);let secs=30;
-  const timerEl=document.getElementById('timer');const btn=document.getElementById('resend-btn');
-  btn.disabled=true;timerEl.textContent=secs+'s';
-  timerInterval=setInterval(()=>{secs--;timerEl.textContent=secs+'s';if(secs<=0){clearInterval(timerInterval);btn.disabled=false;btn.innerHTML='Resend OTP';}},1000);
+  const btn=document.getElementById('resend-btn');
+  btn.disabled=true;btn.innerHTML='Resend OTP (<span id="timer">30s</span>)';
+  const timerEl=document.getElementById('timer');
+  timerInterval=setInterval(()=>{secs--;if(document.getElementById('timer'))document.getElementById('timer').textContent=secs+'s';if(secs<=0){clearInterval(timerInterval);btn.disabled=false;btn.innerHTML='Resend OTP';}},1000);
 }
 function resendOTP(){sendOTP();}
 function backToPhone(){clearInterval(timerInterval);showScreen('screen-phone');}
