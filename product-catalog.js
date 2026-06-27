@@ -1,4 +1,4 @@
-// Fetches Food_Products from Firestore once per session and exposes:
+﻿// Fetches Food_Products from Firestore once per session and exposes:
 //   window.PRODUCT_CATALOG  — { FP01: {productId, name}, FP02: ..., ... }
 //   window.PRODUCT_ID_MAP   — { "Natural Baby Food Mix": "FP01", ... }
 //   window.getProductId(name) — returns productId string or ''
