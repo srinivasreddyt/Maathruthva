@@ -544,7 +544,7 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
 
   window.sendOTPFirebase = async function(phone) {
     if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
-    rcVerifier = new RecaptchaVerifier(auth, 'btn-send-otp', {
+    rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       size: 'invisible',
       callback: () => {}
     });
