@@ -249,6 +249,7 @@
   }
 
 </style>
+<script src="product-catalog.js"></script>
 </head>
 <body>
 
@@ -943,7 +944,7 @@ async function initPayment(){
       const orderData={
         paymentId: response.razorpay_payment_id,
         orderId: response.razorpay_order_id,
-        items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return{productId:p.productId,name:p.name,qty:c.qty,price:p.price};}),
+        items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
         subtotal, discount: promoDiscount, shipping, total: totalPaise/100,
         userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
