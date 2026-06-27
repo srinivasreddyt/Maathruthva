@@ -375,18 +375,8 @@ async function sendOTP(){
   const btn=document.getElementById('btn-send-otp');
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
-<<<<<<< HEAD
-    const otp=Math.floor(100000+Math.random()*900000).toString();
-    sessionStorage.setItem('mtr_otp',JSON.stringify({code:otp,phone:PHONE,expiry:Date.now()+300000}));
-    const resp=await fetch('https://maathruthva-backend.vercel.app/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:PHONE,otp})});
-    const data=await resp.json();
-    if(!resp.ok){throw new Error(data.error||'Failed to send OTP');}
-    const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
-    document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
-=======
     confirmationResult=await window.sendOTPFirebase('+91'+PHONE);
     document.getElementById('otp-target').innerHTML='📱 +91 '+PHONE;
->>>>>>> ordersModuleIntegration
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
     document.getElementById('btn-verify').disabled=true;
     document.getElementById('otp-hint').textContent='';
