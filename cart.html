@@ -466,7 +466,8 @@
       }
 
       // Also save to top-level all_orders collection (admin view, grouped by date)
-      await addDoc(collection(db, 'all_orders'), {
+      const allOrderDocId = orderData.orderId || ref.id;
+      await setDoc(doc(db, 'all_orders', allOrderDocId), {
         ...enriched,
         docId: ref.id,
         userPath: path
