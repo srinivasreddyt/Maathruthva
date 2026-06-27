@@ -375,8 +375,7 @@ async function sendOTP(){
   btn.disabled=true; btn.innerHTML='Sending<span style="opacity:.6">...</span>';
   try{
     confirmationResult=await window.sendOTPFirebase('+91'+PHONE);
-    const masked=PHONE.slice(0,2)+'••••••'+PHONE.slice(-2);
-    document.getElementById('otp-target').innerHTML='📱 +91 '+masked;
+    document.getElementById('otp-target').innerHTML='📱 +91 '+PHONE;
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
     document.getElementById('btn-verify').disabled=true;
     document.getElementById('otp-hint').textContent='';
@@ -556,6 +555,8 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
   };
   window.sendOTPFirebaseReset = function() {
     if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
+    const el = document.getElementById('recaptcha-container');
+    if (el) el.innerHTML = '';
   };
   window.googleSignInFirebase = async function() {
     const provider = new GoogleAuthProvider();
