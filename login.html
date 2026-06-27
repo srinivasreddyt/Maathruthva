@@ -542,13 +542,17 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
     } catch(e) { console.error('Cart save error:', e); }
   };
 
+  function getRecaptchaVerifier() {
+    if (!rcVerifier) {
+      rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {}
+      });
+    }
+    return rcVerifier;
+  }
   window.sendOTPFirebase = async function(phone) {
-    if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
-    rcVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
-      callback: () => {}
-    });
-    return signInWithPhoneNumber(auth, phone, rcVerifier);
+    return signInWithPhoneNumber(auth, phone, getRecaptchaVerifier());
   };
   window.sendOTPFirebaseReset = function() {
     if (rcVerifier) { try { rcVerifier.clear(); } catch(e) {} rcVerifier = null; }
