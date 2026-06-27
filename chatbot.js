@@ -72,7 +72,7 @@
     var btn = document.createElement('button');
     btn.id = 'mtr-chat-btn';
     btn.title = 'Chat with us';
-    btn.innerHTML = '<img src="chatbot-avatar.png.png" alt="Chat"><div id="mtr-chat-badge">1</div>';
+    btn.innerHTML = '<img src="chatbot-avatar.png" alt="Chat"><div id="mtr-chat-badge">1</div>';
     document.body.appendChild(btn);
 
     // Panel
@@ -81,7 +81,7 @@
     panel.className = 'hidden';
     panel.innerHTML = [
       '<div id="mtr-chat-header">',
-        '<img src="chatbot-avatar.png.png" alt="Maathu">',
+        '<img src="chatbot-avatar.png" alt="Maathu">',
         '<div id="mtr-chat-header-text"><div class="name">Maathu</div><div class="status">● Online — here to help</div></div>',
         '<button id="mtr-chat-close" title="Close">✕</button>',
       '</div>',
