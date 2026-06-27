@@ -645,5 +645,6 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 const _a = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",authDomain:"maathruthva.firebaseapp.com",projectId:"maathruthva",storageBucket:"maathruthva.firebasestorage.app",messagingSenderId:"772318181453",appId:"1:772318181453:web:e736b87f53c264b8cf8404"});
 onAuthStateChanged(getAuth(_a),(u)=>{const s=JSON.parse(localStorage.getItem('mtr_user')||'null');if(!u&&s&&s.loggedIn&&!s.guest){localStorage.removeItem('mtr_user');localStorage.removeItem('mtr_addresses');location.reload();}});
 </script>
+<script src="chatbot.js"></script>
 </body>
 </html>
