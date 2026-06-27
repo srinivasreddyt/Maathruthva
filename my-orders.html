@@ -74,6 +74,7 @@
       .brand-logo{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#FBF8F0;padding:2px;box-shadow:0 3px 10px -3px rgba(74,104,48,.45);flex-shrink:0;}
       .brand-wordmark{height:32px;width:auto;object-fit:contain;}
   </style>
+<script src="product-catalog.js"></script>
 </head>
 <body>
 
@@ -178,7 +179,7 @@
       <div class="order-item">
         ${renderItemImg(item.name)}
         <div class="item-info">
-          <div class="item-name">${item.name}</div>
+          <div class="item-name">${item.name}${(() => { const pid=(window.getProductId&&window.getProductId(item.name))||item.productId||''; return pid?` <span style="font-size:.7rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:5px;padding:2px 6px;">${pid}</span>`:''; })()}</div>
           <div class="item-meta">Qty: ${item.qty} &nbsp;·&nbsp; ₹${item.price} each</div>
         </div>
         <div class="item-price">₹${(item.price * item.qty).toFixed(0)}</div>
@@ -191,7 +192,7 @@
         <div class="order-header">
           <div class="order-meta">
             <span class="order-date">${formatDate(data.createdAt)}</span>
-            <span class="order-id">ID: ${(data.paymentId || id).substring(0, 20)}…</span>
+            <span class="order-id">Order ID: ${data.orderId || id}</span>
             <span class="order-status status-confirmed">${data.status || 'Confirmed'}</span>
           </div>
           <div class="order-total">₹${data.total}</div>
