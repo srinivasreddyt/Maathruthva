@@ -380,6 +380,7 @@ async function sendOTP(){
     document.getElementById('btn-verify').disabled=true;
     document.getElementById('otp-hint').textContent='';
     showScreen('screen-otp');
+    showToast('OTP sent successfully!');
     setTimeout(()=>document.getElementById('otp0').focus(),350);
     startTimer();
   }catch(e){
