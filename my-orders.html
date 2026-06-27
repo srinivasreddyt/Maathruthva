@@ -179,7 +179,7 @@
       <div class="order-item">
         ${renderItemImg(item.name)}
         <div class="item-info">
-          <div class="item-name">${item.name}${(() => { const pid=(window.getProductId&&window.getProductId(item.name))||item.productId||''; return pid?` <span style="font-size:.7rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:5px;padding:2px 6px;">${pid}</span>`:''; })()}</div>
+          <div class="item-name">${item.name}</div>
           <div class="item-meta">Qty: ${item.qty} &nbsp;·&nbsp; ₹${item.price} each</div>
         </div>
         <div class="item-price">₹${(item.price * item.qty).toFixed(0)}</div>
