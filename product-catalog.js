@@ -6,7 +6,7 @@
 (function () {
   const PROJECT_ID = 'maathruthva';
   const CACHE_KEY  = 'mtr_product_catalog';
-  const CACHE_TTL  = 30 * 60 * 1000; // 30 minutes
+  const CACHE_TTL  = 2 * 60 * 1000; // 2 minutes
 
   function applyData(docs) {
     const catalog = {};

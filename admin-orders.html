@@ -348,7 +348,7 @@ function renderOrderCard(o) {
   const addrLine = [addr.addr1 || addr.line1, addr.addr2 || addr.line2, addr.city, addr.state, addr.pin || addr.pincode].filter(Boolean).join(', ');
   const itemsHtml = (o.items || []).map(i => `
     <div class="item-row">
-      ${i.productId ? `<span class="item-pid" style="font-size:.72rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:6px;padding:2px 7px;margin-right:6px;">${i.productId}</span>` : ''}
+      ${(() => { const pid = (window.getProductId && window.getProductId(i.name)) || i.productId || ''; return pid ? `<span class="item-pid" style="font-size:.72rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:6px;padding:2px 7px;margin-right:6px;">${pid}</span>` : ''; })()}
       <span class="item-name">${i.name}</span>
       <span class="item-qty">×${i.qty}</span>
       <span class="item-price">₹${(i.price * i.qty).toFixed(0)}</span>
