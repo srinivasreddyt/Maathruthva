@@ -30,9 +30,9 @@
   const db = getFirestore(app);
 
   const PRODUCTS = [
-    { productId: 'FP01', name: 'Natural Baby Food Mix', isAvailable: 1 },
-    { productId: 'FP02', name: 'Growth Mix',            isAvailable: 1 },
-    { productId: 'FP03', name: 'Daily Millet Mix',      isAvailable: 1 },
+    { productId: 'FP01', name: 'Natural Baby Food Mix', isAvailable: 1, isStockAvailable: 1 },
+    { productId: 'FP02', name: 'Growth Mix',            isAvailable: 1, isStockAvailable: 1 },
+    { productId: 'FP03', name: 'Daily Millet Mix',      isAvailable: 1, isStockAvailable: 0 },
   ];
 
   window.seed = async function () {
@@ -42,8 +42,8 @@
     log.textContent = 'Seeding...\n';
     try {
       for (const p of PRODUCTS) {
-        await setDoc(doc(db, 'Food_Products', p.productId), p);
-        log.textContent += `✅ ${p.productId} — ${p.name}\n`;
+        await setDoc(doc(db, 'Food_Products', p.productId), p, { merge: true });
+        log.textContent += `✅ ${p.productId} — ${p.name} (isStockAvailable: ${p.isStockAvailable})\n`;
       }
       log.textContent += '\n✅ Done! You can close this page now.';
     } catch (e) {
