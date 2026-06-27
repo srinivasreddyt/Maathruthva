@@ -13,6 +13,9 @@
     const idMap   = {};
     docs.forEach(function (d) {
       const f  = d.fields || {};
+      // Skip products where isAvailable != 1
+      const isAvailable = f.isAvailable && (f.isAvailable.integerValue == 1 || f.isAvailable.booleanValue === true);
+      if (!isAvailable) return;
       const pid  = (f.productId && f.productId.stringValue) || d.name.split('/').pop();
       const name = (f.name     && f.name.stringValue)      || '';
       catalog[pid] = { productId: pid, name: name };
