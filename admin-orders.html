@@ -355,7 +355,7 @@ function renderOrderCard(o) {
     </div>`).join('');
 
   const time = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
-  const pid = (o.paymentId || o._id || '').substring(0, 24);
+  const pid = o.orderId || o._id || '';
   const status = o.status || 'confirmed';
   const statusBadge = `<span class="status-badge status-${status}">${statusLabel(status)}</span>`;
 
