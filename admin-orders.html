@@ -349,7 +349,7 @@ function renderOrderCard(o) {
   const itemsHtml = (o.items || []).map(i => `
     <div class="item-row">
 
-      <span class="item-name">${i.name}${(() => { const pid=(window.getProductId&&window.getProductId(i.name))||i.productId||''; return pid?` <span style="font-size:.7rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:5px;padding:2px 6px;">${pid}</span>`:'''; })()}</span>
+      <span class="item-name">${i.name}${(() => { const pid=(window.getProductId&&window.getProductId(i.name))||i.productId||''; return pid?` <span style="font-size:.7rem;font-weight:600;color:#b5451b;background:#fff3ed;border-radius:5px;padding:2px 6px;">${pid}</span>`:''; })()}</span>
       <span class="item-qty">×${i.qty}</span>
       <span class="item-price">₹${(i.price * i.qty).toFixed(0)}</span>
     </div>`).join('');
