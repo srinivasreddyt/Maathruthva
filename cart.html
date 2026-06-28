@@ -468,7 +468,10 @@
     try {
       const uid = orderData.userId;
       const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      // Use IST local date (UTC+5:30) to avoid date mismatch for orders placed after midnight IST
+      const istOffset = 5.5 * 60 * 60000;
+      const istDate = new Date(now.getTime() + istOffset);
+      const dateStr = istDate.toISOString().slice(0, 10); // YYYY-MM-DD in IST
       const enriched = { ...orderData, createdAt: serverTimestamp(), date: dateStr };
 
       let ref, path;

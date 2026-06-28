@@ -245,7 +245,8 @@ function showAdminUI() {
 }
 
 function initDashboard() {
-  const today = new Date().toISOString().slice(0, 10);
+  const istDate = new Date(Date.now() + 5.5 * 60 * 60000);
+  const today = istDate.toISOString().slice(0, 10);
   document.getElementById('date-picker').value = today;
   document.getElementById('date-picker').addEventListener('change', loadOrders);
   loadOrders();
