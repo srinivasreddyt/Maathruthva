@@ -517,7 +517,7 @@
     // index.html has large embedded images — wait for full load + min 2s
     var _start = Date.now();
     window.addEventListener('load', function(){
-      var wait = Math.max(0, 2000 - (Date.now() - _start));
+      var wait = Math.max(0, 1500 - (Date.now() - _start));
       setTimeout(hide, wait);
     });
     setTimeout(hide, 4000);
