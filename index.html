@@ -513,15 +513,9 @@
   (function(){
     var loader = document.getElementById('page-loader');
     function hide(){ if(loader) loader.classList.add('hidden'); }
-    // Hide after load, with a min display time so the animation is seen
-    var start = Date.now();
-    window.addEventListener('load', function(){
-      var elapsed = Date.now() - start;
-      var wait = Math.max(0, 800 - elapsed);
-      setTimeout(hide, wait);
-    });
-    // Fallback: hide after 3s no matter what
-    setTimeout(hide, 3000);
+    window.hidePageLoader = hide;
+    window.addEventListener('load', hide);
+    setTimeout(hide, 1500);
   })();
 </script>
 
