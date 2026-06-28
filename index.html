@@ -514,8 +514,13 @@
     var loader = document.getElementById('page-loader');
     function hide(){ if(loader) loader.classList.add('hidden'); }
     window.hidePageLoader = hide;
-    window.addEventListener('load', hide);
-    setTimeout(hide, 1500);
+    // index.html has large embedded images — wait for full load + min 2s
+    var _start = Date.now();
+    window.addEventListener('load', function(){
+      var wait = Math.max(0, 2000 - (Date.now() - _start));
+      setTimeout(hide, wait);
+    });
+    setTimeout(hide, 4000);
   })();
 </script>
 

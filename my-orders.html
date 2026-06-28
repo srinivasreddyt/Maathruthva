@@ -61,9 +61,29 @@
     .btn-track{background:#b5451b;color:#fff;border:none;padding:9px 20px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
     .btn-track:hover{background:#9a3a17;}
 
-    /* ── Loading spinner ── */
+    /* ── Loading spinner (inline orders list) ── */
     .spinner{width:36px;height:36px;border:3px solid #f0e6d3;border-top-color:#b5451b;border-radius:50%;animation:spin .8s linear infinite;margin:60px auto;}
     @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Maathruthva page loader ── */
+    #page-loader{position:fixed;inset:0;z-index:9999;background:#F7F2E7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .6s ease,visibility .6s ease;}
+    #page-loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+    .loader-emblem-wrap{position:relative;width:120px;height:120px;}
+    .loader-emblem{width:120px;height:120px;border-radius:50%;object-fit:contain;background:#FBF8F0;position:relative;z-index:2;animation:loaderPulse 1.8s ease-in-out infinite;}
+    .loader-ring{position:absolute;inset:-8px;border-radius:50%;border:2px solid transparent;background:linear-gradient(white,white) padding-box,linear-gradient(135deg,#6B8C4A,#DCE7C4,#B8901A,#6B8C4A) border-box;animation:loaderSpin 2.4s linear infinite;}
+    .loader-ring2{position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(107,140,74,.25);animation:loaderSpin 3.6s linear infinite reverse;}
+    .loader-shine{position:absolute;inset:0;border-radius:50%;z-index:3;background:conic-gradient(from 0deg,transparent 60%,rgba(255,255,255,.55) 80%,transparent 100%);animation:loaderSpin 1.8s linear infinite;}
+    .loader-text{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:500;color:#4A6830;letter-spacing:.04em;animation:loaderFade 1.8s ease-in-out infinite;}
+    .loader-dots{display:inline-flex;gap:4px;margin-left:2px;vertical-align:bottom;}
+    .loader-dots span{width:5px;height:5px;border-radius:50%;background:#B8901A;animation:dotBounce 1.4s ease-in-out infinite;}
+    .loader-dots span:nth-child(2){animation-delay:.2s;}
+    .loader-dots span:nth-child(3){animation-delay:.4s;}
+    .loader-tagline{font-family:'Jost',sans-serif;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#8A7A50;}
+    @keyframes loaderPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(107,140,74,.25);}50%{transform:scale(1.04);box-shadow:0 0 0 14px rgba(107,140,74,0);}}
+    @keyframes loaderSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+    @keyframes loaderFade{0%,100%{opacity:.6;}50%{opacity:1;}}
+    @keyframes dotBounce{0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-6px);opacity:1;}}
+    @media(max-width:560px){.loader-emblem-wrap{width:96px;height:96px;}.loader-emblem{width:96px;height:96px;}.loader-text{font-size:1.3rem;}}
 
     @media(max-width:480px){
       .order-header{flex-direction:column;align-items:flex-start;}
@@ -77,6 +97,29 @@
 <script src="product-catalog.js"></script>
 </head>
 <body>
+
+<!-- Maathruthva Page Loader -->
+<div id="page-loader">
+  <div class="loader-emblem-wrap">
+    <div class="loader-ring"></div>
+    <div class="loader-ring2"></div>
+    <img class="loader-emblem" id="loader-emblem-img" src="" alt="Maathruthva">
+    <div class="loader-shine"></div>
+  </div>
+  <div class="loader-text">Maathruthva<span class="loader-dots"><span></span><span></span><span></span></span></div>
+  <div class="loader-tagline">Products of Mother Nature</div>
+</div>
+<script>
+  // Grab logo from header brand-logo once DOM is ready, set on loader
+  (function(){
+    var _t = setInterval(function(){
+      var src = document.querySelector('img.brand-logo');
+      if(src && src.src){ document.getElementById('loader-emblem-img').src = src.src; clearInterval(_t); }
+    }, 50);
+    // Fallback: hide after 3s
+    setTimeout(function(){ var l=document.getElementById('page-loader'); if(l) l.classList.add('hidden'); }, 3000);
+  })();
+</script>
 
 <header>
   <div style="display:flex;align-items:center;gap:12px;">
@@ -129,6 +172,8 @@
     loadOrders();
   });
 
+  function hideLoader(){ var l=document.getElementById('page-loader'); if(l) l.classList.add('hidden'); }
+
   async function loadOrders() {
   const user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
   if (!user || !user.uid || user.guest) {
@@ -140,6 +185,7 @@
         <button class="btn-shop" onclick="location.href='login.html?next=my-orders.html'">Log In</button>
       </div>`;
     sub.textContent = '';
+    hideLoader();
     return;
   }
 
@@ -215,16 +261,19 @@
           <button class="btn-shop" onclick="location.href='Food_Products.html'">Start Shopping</button>
         </div>`;
       sub.textContent = '';
+      hideLoader();
       return;
     }
 
     const count = snap.size;
     sub.textContent = `${count} order${count > 1 ? 's' : ''} found`;
     container.innerHTML = snap.docs.map(doc => renderOrder(doc.id, doc.data())).join('');
+    hideLoader();
   } catch(e) {
     console.error('Orders fetch error:', e);
     container.innerHTML = `<div class="state-box"><h3>Something went wrong</h3><p>${e.message}</p></div>`;
     sub.textContent = '';
+    hideLoader();
   }
   } // end loadOrders
 
