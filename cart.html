@@ -974,7 +974,7 @@ async function initPayment(){
         userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
       };
       if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
-      document.getElementById('order-id-display').textContent='Order ID: '+response.razorpay_payment_id;
+      document.getElementById('order-id-display').textContent='Order ID: '+(response.razorpay_order_id || response.razorpay_payment_id);
       // Switch from loading to success state
       document.getElementById('modal-loading-state').style.display = 'none';
       document.getElementById('modal-success-state').style.display = 'block';
