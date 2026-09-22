@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -890,7 +890,7 @@ onAuthStateChanged(getAuth(_a),(u)=>{const s=JSON.parse(localStorage.getItem('mt
   if (window.PRODUCT_CATALOG) applyStockStatus();
 </script><script src="chatbot.js"></script>
 <script>
-document.addEventListener('productCatalogReady', function(){
+function _applyProdNames(){
   document.querySelectorAll('[data-pid]').forEach(function(el){
     var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pid];
     if(entry && entry.name){
@@ -898,6 +898,8 @@ document.addEventListener('productCatalogReady', function(){
       if(a) a.textContent = entry.name; else el.textContent = entry.name;
     }
   });
-});
+}
+if(window.PRODUCT_CATALOG) _applyProdNames();
+else document.addEventListener('productCatalogReady', _applyProdNames);
 </script></body>
 </html>
