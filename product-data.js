@@ -1,4 +1,4 @@
-﻿window.PRODUCT_DATA = [
+window.PRODUCT_DATA = [
   {id:1, name:'Natural Baby Food Mix', meta:'6+ Months Â· 200g',
     desc:'Sprouted ragi, moong dal, carrot & dates. Gentle starter formula.', 
     tags:['Zero Allergens','Sprouted Grains','No Added Sugar'],
