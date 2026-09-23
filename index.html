@@ -139,7 +139,9 @@
   .sub-btn{background:var(--sage-deep);color:var(--paper);border:none;border-radius:30px;padding:14px 30px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-weight:500;cursor:pointer;}
   .contact-us{background:var(--paper);text-align:center;}
   .contact-form{display:flex;flex-direction:column;gap:14px;max-width:520px;margin:26px auto 0;}
+  #cf-guest-fields{display:flex;flex-direction:column;gap:14px;}
   .contact-form-row{display:flex;gap:14px;}
+  .contact-logged-in-note{max-width:520px;margin:26px auto 0;padding:14px 20px;border-radius:18px;background:var(--cream-deep);color:var(--ink-soft);font-size:.9rem;}
   .contact-form input,.contact-form textarea{flex:1;padding:14px 20px;border-radius:18px;border:1px solid rgba(138,122,80,.35);background:var(--cream-deep);font-family:'Jost';font-size:.92rem;color:var(--ink);resize:vertical;}
   .contact-form input:focus,.contact-form textarea:focus{outline:none;border-color:var(--sage);}
   .contact-form .sub-btn{align-self:center;padding:14px 40px;}
@@ -466,12 +468,15 @@
     <div class="sec-eyebrow">Get in touch</div>
     <h2 class="sec-title">Contact Us</h2>
     <p class="sec-intro">Have a question about our products or your order? Send us a message and we'll get back to you.</p>
+    <div class="contact-logged-in-note" id="cf-logged-in-note" style="display:none;"></div>
     <form class="contact-form" id="contact-form" onsubmit="return submitContactQuery(event)">
-      <div class="contact-form-row">
-        <input type="text" id="cf-name" placeholder="Your name" aria-label="Name" required>
-        <input type="tel" id="cf-mobile" placeholder="Mobile number" aria-label="Mobile number">
+      <div id="cf-guest-fields">
+        <div class="contact-form-row">
+          <input type="text" id="cf-name" placeholder="Your name" aria-label="Name">
+          <input type="tel" id="cf-mobile" placeholder="Mobile number" aria-label="Mobile number">
+        </div>
+        <input type="email" id="cf-email" placeholder="Email address (optional if mobile provided)" aria-label="Email">
       </div>
-      <input type="email" id="cf-email" placeholder="Email address (optional if mobile provided)" aria-label="Email">
       <textarea id="cf-message" placeholder="Your query or message" aria-label="Message" required rows="4"></textarea>
       <button class="sub-btn" type="submit" id="cf-submit-btn">Send Message</button>
     </form>
@@ -671,11 +676,43 @@ const _a = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBWhNCW
 onAuthStateChanged(getAuth(_a),(u)=>{const s=JSON.parse(localStorage.getItem('mtr_user')||'null');if(!u&&s&&s.loggedIn&&!s.guest){localStorage.removeItem('mtr_user');localStorage.removeItem('mtr_addresses');location.reload();}});
 
 const _db = getFirestore(_a);
+
+function _contactSessionUser(){
+  var s = JSON.parse(localStorage.getItem('mtr_user')||'null');
+  return (s && s.loggedIn && !s.guest) ? s : null;
+}
+
+function _applyContactFormMode(){
+  var u = _contactSessionUser();
+  var guestFields = document.getElementById('cf-guest-fields');
+  var note = document.getElementById('cf-logged-in-note');
+  if(!guestFields || !note) return;
+  if(u){
+    guestFields.style.display = 'none';
+    document.getElementById('cf-name').required = false;
+    note.style.display = 'block';
+    note.textContent = 'Sending as ' + (u.name || 'your account') + (u.email ? ' · ' + u.email : '') + (u.phone ? ' · ' + u.phone : '');
+  } else {
+    guestFields.style.display = '';
+    document.getElementById('cf-name').required = true;
+    note.style.display = 'none';
+  }
+}
+_applyContactFormMode();
+
 window.submitContactQuery = function(ev){
   ev.preventDefault();
-  var name = document.getElementById('cf-name').value.trim();
-  var mobile = document.getElementById('cf-mobile').value.trim();
-  var email = document.getElementById('cf-email').value.trim();
+  var u = _contactSessionUser();
+  var name, mobile, email;
+  if(u){
+    name = u.name || '';
+    mobile = u.phone || '';
+    email = u.email || '';
+  } else {
+    name = document.getElementById('cf-name').value.trim();
+    mobile = document.getElementById('cf-mobile').value.trim();
+    email = document.getElementById('cf-email').value.trim();
+  }
   var message = document.getElementById('cf-message').value.trim();
   if(!name || !message){ showToast('Please fill in your name and message'); return false; }
   if(!mobile && !email){ showToast('Please provide a mobile number or email'); return false; }
@@ -685,12 +722,14 @@ window.submitContactQuery = function(ev){
     name: name,
     mobile: mobile || null,
     email: email || null,
+    uid: u ? u.uid : null,
     message: message,
     createdAt: serverTimestamp(),
     status: 'new'
   }).then(function(){
     showToast('Thanks! Your message has been sent. We will get back to you soon.');
     document.getElementById('contact-form').reset();
+    _applyContactFormMode();
   }).catch(function(e){
     console.error('[Contact] Save error:', e);
     showToast('Something went wrong. Please try again.');
