@@ -980,10 +980,11 @@ async function initPayment(){
       document.getElementById('modal-success-state').style.display = 'block';
       cart=[]; localStorage.removeItem('mtr_cart');
       if(window.saveCartToFirestore) window.saveCartToFirestore([]);
+      const orderIdForNotify = response.razorpay_order_id || response.razorpay_payment_id;
       if(user.phone){
         fetch(`${BACKEND_URL}/api/send-whatsapp`,{
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({phone: user.phone, paymentId: response.razorpay_payment_id})
+          body: JSON.stringify({phone: user.phone, paymentId: orderIdForNotify})
         }).catch(()=>{});
       }
       if(user.email){
@@ -992,7 +993,7 @@ async function initPayment(){
           body: JSON.stringify({
             email: user.email,
             name: user.name||'',
-            paymentId: response.razorpay_payment_id,
+            paymentId: orderIdForNotify,
             items: orderData.items,
             total: orderData.total,
             address: orderData.address
