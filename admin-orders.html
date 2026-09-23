@@ -132,6 +132,22 @@
       .stats{grid-template-columns:1fr 1fr;}
       .order-card-head{flex-direction:column;align-items:flex-start;}
     }
+
+    /* ── Section tabs (Orders / Queries) ── */
+    .section-tabs{display:flex;gap:8px;margin-bottom:24px;}
+    .section-tab{padding:9px 22px;border-radius:20px;font-size:14px;font-weight:500;cursor:pointer;border:1.5px solid #e0d8cc;background:#fff;color:#666;font-family:'Jost',sans-serif;transition:.2s;}
+    .section-tab.active{background:#333;border-color:#333;color:#fff;}
+
+    /* ── Query cards ── */
+    .queries-grid{display:flex;flex-direction:column;gap:14px;}
+    .query-card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #ede6da;padding:16px 20px;transition:box-shadow .2s;}
+    .query-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);}
+    .query-card-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .query-name{font-size:15px;font-weight:600;color:#333;}
+    .query-time{font-size:12px;color:#888;}
+    .query-contact{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#666;margin-bottom:10px;}
+    .query-message{font-size:14px;color:#444;line-height:1.6;background:#fdf8f2;border-radius:10px;padding:12px 14px;}
+    .query-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;background:#fff3cd;color:#856404;}
   </style>
 <script src="product-catalog.js"></script>
 </head>
@@ -163,6 +179,15 @@
 
 <!-- Main -->
 <div class="main" id="admin-main" style="display:none;">
+
+  <!-- Section tabs -->
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="orders" onclick="adminSetSection('orders')">Orders</button>
+    <button class="section-tab" data-section="queries" onclick="adminSetSection('queries')">Queries</button>
+  </div>
+
+  <!-- Orders section -->
+  <div id="orders-section">
 
   <!-- Controls -->
   <div class="controls">
@@ -212,6 +237,19 @@
     <div class="spinner"></div>
   </div>
 
+  </div>
+
+  <!-- Queries section -->
+  <div id="queries-section" style="display:none;">
+    <div class="controls">
+      <button class="refresh-btn" onclick="adminLoadQueries()">↻ Refresh</button>
+      <span id="queries-last-updated" style="font-size:12px;color:#aaa;"></span>
+    </div>
+    <div class="queries-grid" id="queries-grid">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -235,6 +273,8 @@ const db = getFirestore(app);
 let allOrders = [];
 let currentFilter = 'all';
 let searchQuery = '';
+let allQueries = [];
+let queriesLoaded = false;
 
 // ── All functions defined first ──
 
@@ -405,6 +445,55 @@ function renderOrderCard(o) {
     </div>`;
 }
 
+function setSection(s) {
+  document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t.dataset.section === s));
+  document.getElementById('orders-section').style.display = s === 'orders' ? 'block' : 'none';
+  document.getElementById('queries-section').style.display = s === 'queries' ? 'block' : 'none';
+  if (s === 'queries' && !queriesLoaded) loadQueries();
+}
+
+async function loadQueries() {
+  const grid = document.getElementById('queries-grid');
+  grid.innerHTML = '<div class="spinner"></div>';
+  try {
+    const q = query(collection(db, 'customer_queries'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    allQueries = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    queriesLoaded = true;
+    document.getElementById('queries-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+    renderQueries();
+  } catch (e) {
+    grid.innerHTML = `<div class="error-box">Error loading queries: ${e.message}<br><small>Make sure Firestore security rules allow reading <code>customer_queries</code>.</small></div>`;
+  }
+}
+
+function renderQueries() {
+  const grid = document.getElementById('queries-grid');
+  if (!allQueries.length) {
+    grid.innerHTML = `<div class="empty-state"><h3>No queries yet</h3><p>Messages submitted via the Contact Us form will appear here.</p></div>`;
+    return;
+  }
+  grid.innerHTML = allQueries.map(renderQueryCard).join('');
+}
+
+function renderQueryCard(q) {
+  const dt = q.createdAt?.toDate ? q.createdAt.toDate() : null;
+  const dateStr = dt ? dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const timeStr = dt ? dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+  return `
+    <div class="query-card">
+      <div class="query-card-head">
+        <span class="query-name">${q.name || 'Unknown'}</span>
+        <span class="query-time">${dateStr}${timeStr ? ' · ' + timeStr : ''}</span>
+      </div>
+      <div class="query-contact">
+        ${q.mobile ? `<span>📱 ${q.mobile}</span>` : ''}
+        ${q.email ? `<span>✉ ${q.email}</span>` : ''}
+      </div>
+      <div class="query-message">${q.message || ''}</div>
+    </div>`;
+}
+
 async function updateStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, 'all_orders', docId), { status: newStatus });
@@ -439,6 +528,8 @@ window.adminSetFilter = setFilter;
 window.adminUpdateStatus = updateStatus;
 window.adminSearch = adminSearch;
 window.adminClearSearch = adminClearSearch;
+window.adminSetSection = setSection;
+window.adminLoadQueries = loadQueries;
 
 // ── Auto-unlock if session still active ──
 if (sessionStorage.getItem('mtr_admin') === '1') {
