@@ -727,7 +727,7 @@ window.submitContactQuery = function(ev){
     createdAt: serverTimestamp(),
     status: 'new'
   }).then(function(){
-    showToast('Thanks! Your message has been sent. We will get back to you soon.');
+    showToast('Thanks for contacting Maathruthva! One of our executives will get in touch with you soon.');
     document.getElementById('contact-form').reset();
     _applyContactFormMode();
   }).catch(function(e){
