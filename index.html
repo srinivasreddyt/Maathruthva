@@ -136,7 +136,15 @@
   .sub-form{display:flex;gap:12px;max-width:460px;margin:26px auto 0;}
   .sub-form input{flex:1;padding:14px 20px;border-radius:30px;border:1px solid rgba(138,122,80,.35);background:var(--paper);font-family:'Jost';font-size:.92rem;color:var(--ink);}
   .sub-form input:focus{outline:none;border-color:var(--sage);}
-  .sub-btn{background:var(--sage-deep);color:var(--paper);border:none;border-radius:30px;padding:14px 30px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-weight:500;}
+  .sub-btn{background:var(--sage-deep);color:var(--paper);border:none;border-radius:30px;padding:14px 30px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-weight:500;cursor:pointer;}
+  .contact-us{background:var(--paper);text-align:center;}
+  .contact-form{display:flex;flex-direction:column;gap:14px;max-width:520px;margin:26px auto 0;}
+  .contact-form-row{display:flex;gap:14px;}
+  .contact-form input,.contact-form textarea{flex:1;padding:14px 20px;border-radius:18px;border:1px solid rgba(138,122,80,.35);background:var(--cream-deep);font-family:'Jost';font-size:.92rem;color:var(--ink);resize:vertical;}
+  .contact-form input:focus,.contact-form textarea:focus{outline:none;border-color:var(--sage);}
+  .contact-form .sub-btn{align-self:center;padding:14px 40px;}
+  .contact-form .sub-btn:disabled{opacity:.6;cursor:not-allowed;}
+  @media (max-width:600px){.contact-form-row{flex-direction:column;}}
 
   /* footer */
   footer{background:var(--light-sage);color:var(--sub-txt);padding:44px 0 26px;border-top:1px solid rgba(138,122,80,.2);}
@@ -441,7 +449,7 @@
   </div>
 </section>
 
-<section class="subscribe" id="contact">
+<section class="subscribe" id="newsletter">
   <div class="wrap">
     <div class="sec-eyebrow">Join our community</div>
     <h2 class="sec-title">Be first to know</h2>
@@ -450,6 +458,23 @@
       <input type="email" placeholder="Your email address" aria-label="Email">
       <button class="sub-btn" onclick="showToast('Thanks for subscribing! We will keep you posted.')">Subscribe</button>
     </div>
+  </div>
+</section>
+
+<section class="contact-us" id="contact">
+  <div class="wrap">
+    <div class="sec-eyebrow">Get in touch</div>
+    <h2 class="sec-title">Contact Us</h2>
+    <p class="sec-intro">Have a question about our products or your order? Send us a message and we'll get back to you.</p>
+    <form class="contact-form" id="contact-form" onsubmit="return submitContactQuery(event)">
+      <div class="contact-form-row">
+        <input type="text" id="cf-name" placeholder="Your name" aria-label="Name" required>
+        <input type="tel" id="cf-mobile" placeholder="Mobile number" aria-label="Mobile number">
+      </div>
+      <input type="email" id="cf-email" placeholder="Email address (optional if mobile provided)" aria-label="Email">
+      <textarea id="cf-message" placeholder="Your query or message" aria-label="Message" required rows="4"></textarea>
+      <button class="sub-btn" type="submit" id="cf-submit-btn">Send Message</button>
+    </form>
   </div>
 </section>
 
@@ -641,8 +666,39 @@ function renderCartDrawer(){
 <script type="module">
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const _a = getApps().length ? getApps()[0] : initializeApp({apiKey:"AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",authDomain:"maathruthva.firebaseapp.com",projectId:"maathruthva",storageBucket:"maathruthva.firebasestorage.app",messagingSenderId:"772318181453",appId:"1:772318181453:web:e736b87f53c264b8cf8404"});
 onAuthStateChanged(getAuth(_a),(u)=>{const s=JSON.parse(localStorage.getItem('mtr_user')||'null');if(!u&&s&&s.loggedIn&&!s.guest){localStorage.removeItem('mtr_user');localStorage.removeItem('mtr_addresses');location.reload();}});
+
+const _db = getFirestore(_a);
+window.submitContactQuery = function(ev){
+  ev.preventDefault();
+  var name = document.getElementById('cf-name').value.trim();
+  var mobile = document.getElementById('cf-mobile').value.trim();
+  var email = document.getElementById('cf-email').value.trim();
+  var message = document.getElementById('cf-message').value.trim();
+  if(!name || !message){ showToast('Please fill in your name and message'); return false; }
+  if(!mobile && !email){ showToast('Please provide a mobile number or email'); return false; }
+  var btn = document.getElementById('cf-submit-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  addDoc(collection(_db, 'customer_queries'), {
+    name: name,
+    mobile: mobile || null,
+    email: email || null,
+    message: message,
+    createdAt: serverTimestamp(),
+    status: 'new'
+  }).then(function(){
+    showToast('Thanks! Your message has been sent. We will get back to you soon.');
+    document.getElementById('contact-form').reset();
+  }).catch(function(e){
+    console.error('[Contact] Save error:', e);
+    showToast('Something went wrong. Please try again.');
+  }).finally(function(){
+    btn.disabled = false; btn.textContent = 'Send Message';
+  });
+  return false;
+};
 </script>
 <script src="chatbot.js"></script>
 <script>
