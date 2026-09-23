@@ -242,6 +242,11 @@
   <!-- Queries section -->
   <div id="queries-section" style="display:none;">
     <div class="controls">
+      <div class="date-picker-wrap">
+        <label>Queries for</label>
+        <input type="date" class="date-input" id="queries-date-picker">
+      </div>
+      <button class="refresh-btn" id="queries-clear-date-btn" onclick="adminClearQueriesDate()" style="display:none;">✕ Show all dates</button>
       <button class="refresh-btn" onclick="adminLoadQueries()">↻ Refresh</button>
       <span id="queries-last-updated" style="font-size:12px;color:#aaa;"></span>
     </div>
@@ -275,6 +280,7 @@ let currentFilter = 'all';
 let searchQuery = '';
 let allQueries = [];
 let queriesLoaded = false;
+let queriesDateFilter = '';
 
 // ── All functions defined first ──
 
@@ -452,6 +458,26 @@ function setSection(s) {
   if (s === 'queries' && !queriesLoaded) loadQueries();
 }
 
+function queryDateStr(q) {
+  const dt = q.createdAt?.toDate ? q.createdAt.toDate() : null;
+  if (!dt) return '';
+  const ist = new Date(dt.getTime() + 5.5 * 60 * 60000);
+  return ist.toISOString().slice(0, 10);
+}
+
+function setQueriesDateFilter(val) {
+  queriesDateFilter = val;
+  document.getElementById('queries-clear-date-btn').style.display = val ? 'inline-flex' : 'none';
+  renderQueries();
+}
+
+function clearQueriesDate() {
+  queriesDateFilter = '';
+  document.getElementById('queries-date-picker').value = '';
+  document.getElementById('queries-clear-date-btn').style.display = 'none';
+  renderQueries();
+}
+
 async function loadQueries() {
   const grid = document.getElementById('queries-grid');
   grid.innerHTML = '<div class="spinner"></div>';
@@ -469,11 +495,14 @@ async function loadQueries() {
 
 function renderQueries() {
   const grid = document.getElementById('queries-grid');
-  if (!allQueries.length) {
-    grid.innerHTML = `<div class="empty-state"><h3>No queries yet</h3><p>Messages submitted via the Contact Us form will appear here.</p></div>`;
+  const filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q) === queriesDateFilter) : allQueries;
+  if (!filtered.length) {
+    const msg = queriesDateFilter ? 'No queries on this date' : 'No queries yet';
+    const sub = queriesDateFilter ? 'Try a different date.' : 'Messages submitted via the Contact Us form will appear here.';
+    grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
     return;
   }
-  grid.innerHTML = allQueries.map(renderQueryCard).join('');
+  grid.innerHTML = filtered.map(renderQueryCard).join('');
 }
 
 function renderQueryCard(q) {
@@ -530,6 +559,8 @@ window.adminSearch = adminSearch;
 window.adminClearSearch = adminClearSearch;
 window.adminSetSection = setSection;
 window.adminLoadQueries = loadQueries;
+window.adminClearQueriesDate = clearQueriesDate;
+document.getElementById('queries-date-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
 
 // ── Auto-unlock if session still active ──
 if (sessionStorage.getItem('mtr_admin') === '1') {
