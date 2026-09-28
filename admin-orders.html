@@ -1096,6 +1096,28 @@ async function ensureAllReviewsLoaded() {
   reviewsLoaded = true;
 }
 
+// Products get renamed over time (e.g. "Natural Baby Food Mix" -> "Natural Baby Starter Mix");
+// old orders/reviews still use the name that was current when they were placed. Group those
+// under today's catalog name instead of listing every historical name as a separate product.
+const PRODUCT_NAME_ALIASES = {
+  'Natural Baby Starter Mix': ['Natural Baby Food Mix'],
+  'Natural Baby Growth Mix': ['Growth Mix'],
+  'Natural Baby Millet Mix': ['Daily Millet Mix']
+};
+
+function resolveCanonicalProductName(name) {
+  if (PRODUCT_NAME_ALIASES[name]) return name;
+  for (const canonical in PRODUCT_NAME_ALIASES) {
+    if (PRODUCT_NAME_ALIASES[canonical].includes(name)) return canonical;
+  }
+  return name;
+}
+
+function productMatchesSelection(itemName, selected) {
+  if (itemName === selected) return true;
+  return (PRODUCT_NAME_ALIASES[selected] || []).includes(itemName);
+}
+
 function populatePerformanceProductSelect() {
   const select = document.getElementById('performance-product-select');
   if (!select) return;
@@ -1104,9 +1126,9 @@ function populatePerformanceProductSelect() {
   if (catalog) {
     (Array.isArray(catalog) ? catalog : Object.values(catalog)).forEach(p => p.name && set.add(p.name));
   }
-  // Historical orders/reviews may use older product names (renamed since) — include those too
-  allOrdersFull.forEach(o => (o.items || []).forEach(i => i.name && set.add(i.name)));
-  allReviews.forEach(r => r.productName && set.add(r.productName));
+  // Historical orders/reviews may use older product names — fold those into their current name
+  allOrdersFull.forEach(o => (o.items || []).forEach(i => i.name && set.add(resolveCanonicalProductName(i.name))));
+  allReviews.forEach(r => r.productName && set.add(resolveCanonicalProductName(r.productName)));
   const names = Array.from(set).sort();
   const prevValue = select.value;
   select.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
@@ -1172,7 +1194,7 @@ function renderPerformance() {
     const ym = (o.date || '').slice(0, 7);
     if (!ym) return;
     (o.items || []).forEach(i => {
-      if (i.name !== product) return;
+      if (!productMatchesSelection(i.name, product)) return;
       revenueByMonth[ym] = (revenueByMonth[ym] || 0) + (i.price || 0) * (i.qty || 0);
       unitsByMonth[ym] = (unitsByMonth[ym] || 0) + (i.qty || 0);
     });
@@ -1181,7 +1203,7 @@ function renderPerformance() {
   const ratingSumByMonth = {};
   const ratingCountByMonth = {};
   allReviews.forEach(r => {
-    if (r.productName !== product) return;
+    if (!productMatchesSelection(r.productName, product)) return;
     const ym = reviewDateStr(r).slice(0, 7);
     if (!ym) return;
     ratingSumByMonth[ym] = (ratingSumByMonth[ym] || 0) + (r.rating || 0);
