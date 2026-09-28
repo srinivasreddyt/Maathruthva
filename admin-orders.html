@@ -435,6 +435,10 @@
         <label>Product</label>
         <select class="date-input" id="performance-product-select" onchange="adminRenderPerformance()"></select>
       </div>
+      <div class="date-picker-wrap">
+        <label>Year</label>
+        <select class="date-input" id="performance-year-select" onchange="adminRenderPerformance()"></select>
+      </div>
       <button class="refresh-btn" onclick="adminLoadPerformance()">↻ Refresh</button>
       <span id="performance-last-updated" style="font-size:12px;color:#aaa;"></span>
     </div>
@@ -1150,6 +1154,20 @@ function populatePerformanceProductSelect() {
   select.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   if (names.includes(prevValue)) select.value = prevValue;
   else if (names.length) select.value = names[0];
+  populatePerformanceYearSelect();
+}
+
+function populatePerformanceYearSelect() {
+  const select = document.getElementById('performance-year-select');
+  if (!select) return;
+  const years = new Set();
+  allOrdersFull.forEach(o => { if (o.date) years.add(o.date.slice(0, 4)); });
+  allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(d.slice(0, 4)); });
+  const sortedYears = Array.from(years).sort().reverse();
+  const prevValue = select.value;
+  select.innerHTML = '<option value="all">All Years</option>' + sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+  if (sortedYears.includes(prevValue)) select.value = prevValue;
+  else select.value = 'all';
   renderPerformance();
 }
 
@@ -1221,12 +1239,16 @@ function renderPerformance() {
     return;
   }
 
+  const yearSelect = document.getElementById('performance-year-select');
+  const selectedYear = yearSelect ? yearSelect.value : 'all';
+
   const revenueByMonth = {};
   const unitsByMonth = {};
   allOrdersFull.forEach(o => {
     if (o.status === 'cancelled') return;
     const ym = (o.date || '').slice(0, 7);
     if (!ym) return;
+    if (selectedYear !== 'all' && !ym.startsWith(selectedYear)) return;
     (o.items || []).forEach(i => {
       if (!productMatchesSelection(i.name, product)) return;
       revenueByMonth[ym] = (revenueByMonth[ym] || 0) + (i.price || 0) * (i.qty || 0);
@@ -1240,6 +1262,7 @@ function renderPerformance() {
     if (!productMatchesSelection(r.productName, product)) return;
     const ym = reviewDateStr(r).slice(0, 7);
     if (!ym) return;
+    if (selectedYear !== 'all' && !ym.startsWith(selectedYear)) return;
     ratingSumByMonth[ym] = (ratingSumByMonth[ym] || 0) + (r.rating || 0);
     ratingCountByMonth[ym] = (ratingCountByMonth[ym] || 0) + 1;
   });
@@ -1251,7 +1274,8 @@ function renderPerformance() {
   ])).sort().reverse();
 
   if (!allMonths.length) {
-    content.innerHTML = `<div class="empty-state"><h3>No data for this product yet</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
+    const yearNote = selectedYear !== 'all' ? ` in ${selectedYear}` : '';
+    content.innerHTML = `<div class="empty-state"><h3>No data for this product${yearNote}</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
     return;
   }
 
