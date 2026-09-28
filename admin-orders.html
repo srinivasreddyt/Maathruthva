@@ -158,6 +158,18 @@
     .btn-resolve:hover{background:#9a3a17;}
     .btn-resolve:disabled{background:#ccc;cursor:not-allowed;}
     .query-resolution-text{font-size:13px;color:#444;background:#f4f9f4;border-radius:10px;padding:10px 14px;line-height:1.5;}
+
+    /* ── Review cards ── */
+    .review-card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #ede6da;padding:16px 20px;transition:box-shadow .2s;}
+    .review-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);}
+    .review-card-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .review-product{font-size:15px;font-weight:600;color:#333;}
+    .review-order-id{font-size:12px;color:#b5451b;background:#ffeee7;padding:3px 10px;border-radius:10px;font-weight:500;font-family:monospace;margin-left:8px;}
+    .review-time{font-size:12px;color:#888;}
+    .review-stars{color:#f5a623;font-size:18px;margin-bottom:8px;}
+    .review-stars .star-empty{color:#ddd;}
+    .review-contact{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#666;margin-bottom:10px;}
+    .review-comment{font-size:14px;color:#444;line-height:1.6;background:#fdf8f2;border-radius:10px;padding:12px 14px;font-style:italic;}
   </style>
 <script src="product-catalog.js"></script>
 </head>
@@ -194,6 +206,7 @@
   <div class="section-tabs">
     <button class="section-tab active" data-section="orders" onclick="adminSetSection('orders')">Orders</button>
     <button class="section-tab" data-section="queries" onclick="adminSetSection('queries')">Queries</button>
+    <button class="section-tab" data-section="reviews" onclick="adminSetSection('reviews')">Reviews</button>
   </div>
 
   <!-- Orders section -->
@@ -259,8 +272,29 @@
       <button class="refresh-btn" id="queries-clear-date-btn" onclick="adminClearQueriesDate()" style="display:none;">✕ Show all dates</button>
       <button class="refresh-btn" onclick="adminLoadQueries()">↻ Refresh</button>
       <span id="queries-last-updated" style="font-size:12px;color:#aaa;"></span>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="queries-search" type="text" placeholder="Search by message, email or phone…" oninput="adminSearchQueries(this.value)">
+        <span class="search-clear" id="queries-search-clear" onclick="adminClearQueriesSearch()">×</span>
+      </div>
     </div>
     <div class="queries-grid" id="queries-grid">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Reviews section -->
+  <div id="reviews-section" style="display:none;">
+    <div class="controls">
+      <button class="refresh-btn" onclick="adminLoadReviews()">↻ Refresh</button>
+      <span id="reviews-last-updated" style="font-size:12px;color:#aaa;"></span>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="reviews-search" type="text" placeholder="Search by product, order ID or comment…" oninput="adminSearchReviews(this.value)">
+        <span class="search-clear" id="reviews-search-clear" onclick="adminClearReviewsSearch()">×</span>
+      </div>
+    </div>
+    <div class="queries-grid" id="reviews-grid">
       <div class="spinner"></div>
     </div>
   </div>
@@ -291,6 +325,9 @@ let searchQuery = '';
 let allQueries = [];
 let queriesLoaded = false;
 let queriesDateFilter = '';
+let allReviews = [];
+let reviewsLoaded = false;
+let reviewsSearchQuery = '';
 
 // ── All functions defined first ──
 
@@ -531,7 +568,9 @@ function setSection(s) {
   document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t.dataset.section === s));
   document.getElementById('orders-section').style.display = s === 'orders' ? 'block' : 'none';
   document.getElementById('queries-section').style.display = s === 'queries' ? 'block' : 'none';
+  document.getElementById('reviews-section').style.display = s === 'reviews' ? 'block' : 'none';
   if (s === 'queries' && !queriesLoaded) loadQueries();
+  if (s === 'reviews' && !reviewsLoaded) loadReviews();
 }
 
 function queryDateStr(q) {
@@ -569,16 +608,40 @@ async function loadQueries() {
   }
 }
 
+let queriesSearchQuery = '';
+
 function renderQueries() {
   const grid = document.getElementById('queries-grid');
-  const filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q) === queriesDateFilter) : allQueries;
+  let filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q) === queriesDateFilter) : allQueries;
+  if (queriesSearchQuery) {
+    const sq = queriesSearchQuery.toLowerCase();
+    filtered = filtered.filter(q => {
+      const msg = (q.message || '').toLowerCase();
+      const email = (q.email || '').toLowerCase();
+      const mobile = (q.mobile || '').toLowerCase();
+      return msg.includes(sq) || email.includes(sq) || mobile.includes(sq);
+    });
+  }
   if (!filtered.length) {
-    const msg = queriesDateFilter ? 'No queries on this date' : 'No queries yet';
-    const sub = queriesDateFilter ? 'Try a different date.' : 'Messages submitted via the Contact Us form will appear here.';
+    const msg = queriesSearchQuery ? 'No queries match your search' : (queriesDateFilter ? 'No queries on this date' : 'No queries yet');
+    const sub = queriesSearchQuery ? 'Try a different message, email or phone number.' : (queriesDateFilter ? 'Try a different date.' : 'Messages submitted via the Contact Us form will appear here.');
     grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
     return;
   }
   grid.innerHTML = filtered.map(renderQueryCard).join('');
+}
+
+function searchQueries(val) {
+  queriesSearchQuery = val.trim();
+  document.getElementById('queries-search-clear').style.display = queriesSearchQuery ? 'block' : 'none';
+  renderQueries();
+}
+
+function clearQueriesSearch() {
+  queriesSearchQuery = '';
+  document.getElementById('queries-search').value = '';
+  document.getElementById('queries-search-clear').style.display = 'none';
+  renderQueries();
 }
 
 function escapeHtml(s) {
@@ -615,6 +678,78 @@ function renderQueryCard(q) {
       <div class="query-message">${q.message || ''}</div>
       ${resolutionHtml}
     </div>`;
+}
+
+async function loadReviews() {
+  const grid = document.getElementById('reviews-grid');
+  grid.innerHTML = '<div class="spinner"></div>';
+  try {
+    const q = query(collection(db, 'reviews'), orderBy('date', 'desc'));
+    const snap = await getDocs(q);
+    allReviews = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    reviewsLoaded = true;
+    document.getElementById('reviews-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+    renderReviews();
+  } catch (e) {
+    grid.innerHTML = `<div class="error-box">Error loading reviews: ${e.message}<br><small>Make sure Firestore security rules allow reading <code>reviews</code>.</small></div>`;
+  }
+}
+
+function renderReviews() {
+  const grid = document.getElementById('reviews-grid');
+  let filtered = allReviews;
+  if (reviewsSearchQuery) {
+    const sq = reviewsSearchQuery.toLowerCase();
+    filtered = filtered.filter(r => {
+      const product = (r.productName || '').toLowerCase();
+      const orderId = (r.orderId || '').toLowerCase();
+      const comment = (r.comment || '').toLowerCase();
+      const email = (r.email || '').toLowerCase();
+      const phone = (r.phone || '').toLowerCase();
+      return product.includes(sq) || orderId.includes(sq) || comment.includes(sq) || email.includes(sq) || phone.includes(sq);
+    });
+  }
+  if (!filtered.length) {
+    const msg = reviewsSearchQuery ? 'No reviews match your search' : 'No reviews yet';
+    const sub = reviewsSearchQuery ? 'Try a different product, order ID or comment.' : 'Customer reviews on delivered orders will appear here.';
+    grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(renderReviewCard).join('');
+}
+
+function renderReviewCard(r) {
+  const dt = r.date?.toDate ? r.date.toDate() : null;
+  const dateStr = dt ? dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const timeStr = dt ? dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+  const rating = r.rating || 0;
+  const stars = [1,2,3,4,5].map(n => `<span class="${n <= rating ? '' : 'star-empty'}">★</span>`).join('');
+  return `
+    <div class="review-card">
+      <div class="review-card-head">
+        <span class="review-product">${escapeHtml(r.productName || 'Unknown product')}${r.orderId ? `<span class="review-order-id">${escapeHtml(r.orderId)}</span>` : ''}</span>
+        <span class="review-time">${dateStr}${timeStr ? ' · ' + timeStr : ''}</span>
+      </div>
+      <div class="review-stars">${stars}</div>
+      <div class="review-contact">
+        ${r.phone ? `<span>📱 ${escapeHtml(r.phone)}</span>` : ''}
+        ${r.email ? `<span>✉ ${escapeHtml(r.email)}</span>` : ''}
+      </div>
+      ${r.comment ? `<div class="review-comment">"${escapeHtml(r.comment)}"</div>` : ''}
+    </div>`;
+}
+
+function searchReviews(val) {
+  reviewsSearchQuery = val.trim();
+  document.getElementById('reviews-search-clear').style.display = reviewsSearchQuery ? 'block' : 'none';
+  renderReviews();
+}
+
+function clearReviewsSearch() {
+  reviewsSearchQuery = '';
+  document.getElementById('reviews-search').value = '';
+  document.getElementById('reviews-search-clear').style.display = 'none';
+  renderReviews();
 }
 
 async function saveResolution(docId) {
@@ -692,6 +827,11 @@ window.adminClearSearch = adminClearSearch;
 window.adminSetSection = setSection;
 window.adminLoadQueries = loadQueries;
 window.adminSaveResolution = saveResolution;
+window.adminSearchQueries = searchQueries;
+window.adminClearQueriesSearch = clearQueriesSearch;
+window.adminLoadReviews = loadReviews;
+window.adminSearchReviews = searchReviews;
+window.adminClearReviewsSearch = clearReviewsSearch;
 window.adminClearQueriesDate = clearQueriesDate;
 document.getElementById('queries-date-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
 
