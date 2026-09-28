@@ -462,6 +462,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_PIN = '2611';
+const BACKEND_URL = 'https://maathruthva-backend.vercel.app';
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -1322,15 +1323,28 @@ async function updateStatus(docId, newStatus) {
     // updated all_orders doc is the reliable source, so read it back if needed.
     let userPath = o && o.userPath;
     let personalDocId = o && o.docId;
-    if (!userPath || !personalDocId) {
+    let userEmail = o && o.userEmail;
+    let userName = o && o.userName;
+    let orderIdForEmail = o && (o.orderId || o._id);
+    if (!userPath || !personalDocId || !userEmail) {
       const freshSnap = await getDoc(doc(db, 'all_orders', docId));
       const freshData = freshSnap.data();
       userPath = userPath || freshData?.userPath;
       personalDocId = personalDocId || freshData?.docId;
+      userEmail = userEmail || freshData?.userEmail;
+      userName = userName || freshData?.userName;
+      orderIdForEmail = orderIdForEmail || freshData?.orderId || docId;
     }
     if (userPath && personalDocId) {
       try { await updateDoc(doc(db, userPath, personalDocId), { status: newStatus }); }
       catch (e2) { console.error('Personal order copy sync failed:', e2); }
+    }
+
+    if (userEmail && (newStatus === 'dispatched' || newStatus === 'delivered')) {
+      fetch(`${BACKEND_URL}/api/send-status-email`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, name: userName || '', orderId: orderIdForEmail, status: newStatus })
+      }).catch(err => console.error('Status email failed:', err));
     }
 
     updateStats();
