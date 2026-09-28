@@ -1325,14 +1325,16 @@ async function updateStatus(docId, newStatus) {
     let personalDocId = o && o.docId;
     let userEmail = o && o.userEmail;
     let userName = o && o.userName;
+    let userPhone = o && (o.userPhone || o.address?.phone);
     let orderIdForEmail = o && (o.orderId || o._id);
-    if (!userPath || !personalDocId || !userEmail) {
+    if (!userPath || !personalDocId || !userEmail || !userPhone) {
       const freshSnap = await getDoc(doc(db, 'all_orders', docId));
       const freshData = freshSnap.data();
       userPath = userPath || freshData?.userPath;
       personalDocId = personalDocId || freshData?.docId;
       userEmail = userEmail || freshData?.userEmail;
       userName = userName || freshData?.userName;
+      userPhone = userPhone || freshData?.userPhone || freshData?.address?.phone;
       orderIdForEmail = orderIdForEmail || freshData?.orderId || docId;
     }
     if (userPath && personalDocId) {
@@ -1345,6 +1347,13 @@ async function updateStatus(docId, newStatus) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, name: userName || '', orderId: orderIdForEmail, status: newStatus })
       }).catch(err => console.error('Status email failed:', err));
+    }
+
+    if (userPhone && (newStatus === 'dispatched' || newStatus === 'delivered')) {
+      fetch(`${BACKEND_URL}/api/send-status-whatsapp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: userPhone, orderId: orderIdForEmail, status: newStatus })
+      }).catch(err => console.error('Status WhatsApp failed:', err));
     }
 
     updateStats();
