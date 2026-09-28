@@ -13,9 +13,9 @@
   </style>
 </head>
 <body>
-  <h2>Seed Food_Products to Firestore</h2>
-  <p>Click the button to create the <strong>Food_Products</strong> collection with FP01, FP02, FP03 documents.</p>
-  <button id="btn" onclick="seed()">Seed Now</button>
+  <h2>Seed Prices to Food_Products in Firestore</h2>
+  <p>Click the button to add a <strong>price</strong> field to the FP01, FP02, FP03 documents (merge — existing fields like name/isAvailable are left untouched).</p>
+  <button id="btn" onclick="seed()">Seed Prices Now</button>
   <pre id="log">Waiting...</pre>
 
 <script type="module">
@@ -29,21 +29,21 @@
   });
   const db = getFirestore(app);
 
-  const PRODUCTS = [
-    { productId: 'FP01', name: 'Natural Baby Food Mix', isAvailable: 1, isStockAvailable: 1 },
-    { productId: 'FP02', name: 'Growth Mix',            isAvailable: 1, isStockAvailable: 1 },
-    { productId: 'FP03', name: 'Daily Millet Mix',      isAvailable: 1, isStockAvailable: 0 },
+  const PRICES = [
+    { productId: 'FP01', price: 299 },
+    { productId: 'FP02', price: 349 },
+    { productId: 'FP03', price: 349 },
   ];
 
   window.seed = async function () {
     const btn = document.getElementById('btn');
     const log = document.getElementById('log');
     btn.disabled = true;
-    log.textContent = 'Seeding...\n';
+    log.textContent = 'Seeding prices...\n';
     try {
-      for (const p of PRODUCTS) {
-        await setDoc(doc(db, 'Food_Products', p.productId), p, { merge: true });
-        log.textContent += `✅ ${p.productId} — ${p.name} (isStockAvailable: ${p.isStockAvailable})\n`;
+      for (const p of PRICES) {
+        await setDoc(doc(db, 'Food_Products', p.productId), { price: p.price }, { merge: true });
+        log.textContent += `✅ ${p.productId} — price: ₹${p.price}\n`;
       }
       log.textContent += '\n✅ Done! You can close this page now.';
     } catch (e) {
