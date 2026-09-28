@@ -351,36 +351,79 @@ function setFilter(f) {
   renderOrders();
 }
 
+function localSearchMatch(o, q) {
+  const name = (o.userName || o.address?.name || '').toLowerCase();
+  const email = (o.userEmail || '').toLowerCase();
+  const phone = (o.userPhone || o.address?.phone || '').toLowerCase();
+  const pid = (o.paymentId || '').toLowerCase();
+  const oid = (o.orderId || o._id || '').toLowerCase();
+  return name.includes(q) || email.includes(q) || phone.includes(q) || pid.includes(q) || oid.includes(q);
+}
+
 function renderOrders() {
   const grid = document.getElementById('orders-grid');
   let filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(o => {
-      const name = (o.userName || o.address?.name || '').toLowerCase();
-      const email = (o.userEmail || '').toLowerCase();
-      const phone = (o.userPhone || o.address?.phone || '').toLowerCase();
-      const pid = (o.paymentId || o._id || '').toLowerCase();
-      return name.includes(q) || email.includes(q) || phone.includes(q) || pid.includes(q);
-    });
+    filtered = filtered.filter(o => localSearchMatch(o, q));
+    // Merge in any cross-date Firestore results for this same query, deduped
+    if (firestoreSearchResults.length && firestoreSearchQuery === searchQuery) {
+      const seen = new Set(filtered.map(o => o._id));
+      firestoreSearchResults.forEach(o => { if (!seen.has(o._id)) { filtered.push(o); seen.add(o._id); } });
+    }
   }
   if (!filtered.length) {
-    const msg = searchQuery ? 'No orders match your search' : (currentFilter === 'all' ? 'No orders today' : 'No orders in this category');
-    const sub = searchQuery ? 'Try a different name, email or order ID.' : (currentFilter === 'all' ? 'Orders placed today will appear here.' : 'Try a different filter.');
+    const msg = searchQuery ? (searchingFirestore ? 'Searching…' : 'No orders match your search') : (currentFilter === 'all' ? 'No orders today' : 'No orders in this category');
+    const sub = searchQuery ? (searchingFirestore ? 'Looking across all dates in Firestore.' : 'Try a different name, email or order ID.') : (currentFilter === 'all' ? 'Orders placed today will appear here.' : 'Try a different filter.');
     grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
     return;
   }
   grid.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
 }
 
+let searchDebounceTimer = null;
+let firestoreSearchResults = [];
+let firestoreSearchQuery = '';
+let searchingFirestore = false;
+
 function adminSearch(val) {
   searchQuery = val.trim();
   document.getElementById('search-clear').style.display = searchQuery ? 'block' : 'none';
   renderOrders();
+
+  clearTimeout(searchDebounceTimer);
+  if (!searchQuery) { firestoreSearchResults = []; firestoreSearchQuery = ''; return; }
+  searchDebounceTimer = setTimeout(() => searchFirestoreForQuery(searchQuery), 500);
+}
+
+async function searchFirestoreForQuery(q) {
+  // Only worth a Firestore round-trip if nothing local already matches (order might be on a different date)
+  const localMatch = allOrders.some(o => localSearchMatch(o, q.toLowerCase()));
+  if (localMatch) return;
+  searchingFirestore = true;
+  if (searchQuery === q) renderOrders();
+  try {
+    const results = [];
+    const seen = new Set();
+    for (const field of ['orderId', 'paymentId']) {
+      const snap = await getDocs(query(collection(db, 'all_orders'), where(field, '==', q)));
+      snap.docs.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); results.push({ _id: d.id, ...d.data() }); } });
+    }
+    firestoreSearchResults = results;
+    firestoreSearchQuery = q;
+  } catch (e) {
+    console.error('Firestore search error:', e);
+  } finally {
+    searchingFirestore = false;
+    if (searchQuery === q) renderOrders();
+  }
 }
 
 function adminClearSearch() {
   searchQuery = '';
+  firestoreSearchResults = [];
+  firestoreSearchQuery = '';
+  clearTimeout(searchDebounceTimer);
   document.getElementById('order-search').value = '';
   document.getElementById('search-clear').style.display = 'none';
   renderOrders();
