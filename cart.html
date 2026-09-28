@@ -596,6 +596,11 @@ let promoDiscount = 0;
 let currentSection = 'cart';
 
 // ── Render cart ──
+function productDisplayName(p){
+  var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[p.productId];
+  return (entry && entry.name) || p.name;
+}
+
 function renderCart(){
   const list = document.getElementById('cart-list');
   const active = cart.filter(c=>c.qty>0);
@@ -619,10 +624,11 @@ function renderCart(){
   list.innerHTML = active.map(c=>{
     const p = PRODUCTS.find(x=>x.id===c.id);
     if(!p) return '';
+    const displayName = productDisplayName(p);
     return `<div class="cart-item" id="item-${p.id}">
-      <div class="item-img ${p.imgClass}"><img src="${p.img}" alt="${p.name}"></div>
+      <div class="item-img ${p.imgClass}"><img src="${p.img}" alt="${displayName}"></div>
       <div class="item-details">
-        <div class="item-name">${p.name}</div>
+        <div class="item-name">${displayName}</div>
         <div class="item-meta">${p.meta}</div>
         <div class="item-desc">${p.desc}</div>
         <div class="item-tags">${p.tags.map(t=>`<span class="item-tag">${t}</span>`).join('')}</div>
@@ -1035,6 +1041,10 @@ let tt; function showToast(m){const t=document.getElementById('toast');t.textCon
 
 // Render cart immediately from localStorage
 renderCart();
+// Re-render once the live Firestore product catalog loads, so item names
+// reflect the current product name (renamed products don't show a stale name)
+if(window.PRODUCT_CATALOG) renderCart();
+else document.addEventListener('productCatalogReady', renderCart);
 
 // Set up Firestore save in background
 (async function(){
