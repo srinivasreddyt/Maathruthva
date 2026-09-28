@@ -420,14 +420,17 @@ async function searchFirestoreForQuery(q) {
           if (seen.has(d.id)) continue;
           seen.add(d.id);
           const data = d.data();
-          results.push({ _id: d.id, ...data });
-          // Backfill all_orders so future searches/date views pick it up without this fallback
+          // The local object's _id must match the all_orders doc ID (not the personal
+          // subcollection's doc ID) since Mark Dispatched/Delivered updates all_orders by _id.
           const uidMatch = d.ref.path.match(/^users\/([^/]+)\/orders\//);
           const allOrdersDocId = data.orderId || d.id;
+          const userPath = uidMatch ? `users/${uidMatch[1]}/orders` : null;
+          results.push({ _id: allOrdersDocId, ...data, docId: d.id, userPath });
+          // Backfill all_orders so future searches/date views pick it up without this fallback
           setDoc(doc(db, 'all_orders', allOrdersDocId), {
             ...data,
             docId: d.id,
-            userPath: uidMatch ? `users/${uidMatch[1]}/orders` : null
+            userPath
           }).catch(err => console.error('Backfill to all_orders failed:', err));
         }
       } catch (e) { console.error(`collectionGroup search by ${field} error:`, e); }
