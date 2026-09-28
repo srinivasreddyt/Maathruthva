@@ -260,7 +260,7 @@
 <script type="module">
 /* v3 */
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, collectionGroup, query, where, getDocs, doc, updateDoc, orderBy, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -589,11 +589,27 @@ function renderQueryCard(q) {
 async function updateStatus(docId, newStatus) {
   try {
     await updateDoc(doc(db, 'all_orders', docId), { status: newStatus });
-    const o = allOrders.find(x => x._id === docId);
+
+    // Update whichever in-memory list currently holds this order (date-scoped or search results)
+    const o = allOrders.find(x => x._id === docId) || firestoreSearchResults.find(x => x._id === docId);
     if (o) o.status = newStatus;
-    if (o && o.userPath && o.docId) {
-      try { await updateDoc(doc(db, o.userPath, o.docId), { status: newStatus }); } catch (_) {}
+
+    // userPath/docId may be missing on the in-memory object (e.g. orders found via
+    // the collectionGroup search fallback never had them locally) — the freshly
+    // updated all_orders doc is the reliable source, so read it back if needed.
+    let userPath = o && o.userPath;
+    let personalDocId = o && o.docId;
+    if (!userPath || !personalDocId) {
+      const freshSnap = await getDoc(doc(db, 'all_orders', docId));
+      const freshData = freshSnap.data();
+      userPath = userPath || freshData?.userPath;
+      personalDocId = personalDocId || freshData?.docId;
     }
+    if (userPath && personalDocId) {
+      try { await updateDoc(doc(db, userPath, personalDocId), { status: newStatus }); }
+      catch (e2) { console.error('Personal order copy sync failed:', e2); }
+    }
+
     updateStats();
     renderOrders();
   } catch (e) {
