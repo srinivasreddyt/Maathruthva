@@ -151,6 +151,12 @@
     .vbar-fill.rating{background:linear-gradient(180deg,#f7c873,#f5a623);}
     .vbar-label{font-size:11px;color:#888;margin-top:8px;text-align:center;white-space:nowrap;}
     .vbar-sub{font-size:10px;color:#bbb;display:block;}
+    .perf-total{margin-top:18px;padding-top:16px;border-top:1px solid #f0e6d3;display:flex;align-items:center;justify-content:space-between;}
+    .perf-total-label{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+    .perf-total-val{font-size:20px;font-weight:700;}
+    .perf-total-val.revenue{color:#b5451b;}
+    .perf-total-val.units{color:#4a6830;}
+    .perf-total-val.rating{color:#f5a623;}
 
     @media(max-width:768px){
       .stats{grid-template-columns:1fr 1fr;}
@@ -1167,7 +1173,7 @@ function monthLabel(ym) {
   return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 
-function renderPerfChart(title, months, valuesByMonth, countsByMonth, formatFn, barClass) {
+function renderPerfChart(title, months, valuesByMonth, countsByMonth, formatFn, barClass, totalLabel) {
   const isRating = barClass === 'rating';
   const chronological = [...months].reverse();
   const maxVal = isRating ? 5 : Math.max(...chronological.map(m => valuesByMonth[m] || 0), 1);
@@ -1185,7 +1191,24 @@ function renderPerfChart(title, months, valuesByMonth, countsByMonth, formatFn, 
       </div>`;
   }).filter(Boolean).join('');
   if (!cols) return '';
-  return `<div class="perf-chart"><div class="perf-chart-title">${title}</div><div class="vbar-chart">${cols}</div></div>`;
+
+  let totalVal, totalSub = '';
+  if (isRating) {
+    const sumRatings = chronological.reduce((s, m) => s + (valuesByMonth[m] || 0), 0);
+    const sumCounts = chronological.reduce((s, m) => s + (countsByMonth[m] || 0), 0);
+    totalVal = formatFn(sumCounts ? sumRatings / sumCounts : 0);
+    totalSub = `${sumCounts} review${sumCounts !== 1 ? 's' : ''} total`;
+  } else {
+    const sum = chronological.reduce((s, m) => s + (valuesByMonth[m] || 0), 0);
+    totalVal = formatFn(sum);
+  }
+  const totalHtml = `
+    <div class="perf-total">
+      <span class="perf-total-label">${totalLabel}${totalSub ? ' (' + totalSub + ')' : ''}</span>
+      <span class="perf-total-val ${barClass || 'revenue'}">${totalVal}</span>
+    </div>`;
+
+  return `<div class="perf-chart"><div class="perf-chart-title">${title}</div><div class="vbar-chart">${cols}</div>${totalHtml}</div>`;
 }
 
 function renderPerformance() {
@@ -1233,9 +1256,9 @@ function renderPerformance() {
   }
 
   const html =
-    renderPerfChart('Monthly Revenue', allMonths, revenueByMonth, null, v => '₹' + v.toFixed(0), '') +
-    renderPerfChart('Units Ordered per Month', allMonths, unitsByMonth, null, v => v + ' unit' + (v !== 1 ? 's' : ''), 'units') +
-    renderPerfChart('Average Rating per Month', allMonths, ratingSumByMonth, ratingCountByMonth, v => '★ ' + v.toFixed(1), 'rating');
+    renderPerfChart('Monthly Revenue', allMonths, revenueByMonth, null, v => '₹' + v.toFixed(0), '', 'Total Revenue') +
+    renderPerfChart('Units Ordered per Month', allMonths, unitsByMonth, null, v => v + ' unit' + (v !== 1 ? 's' : ''), 'units', 'Total Units Ordered') +
+    renderPerfChart('Average Rating per Month', allMonths, ratingSumByMonth, ratingCountByMonth, v => '★ ' + v.toFixed(1), 'rating', 'Overall Average Rating');
 
   content.innerHTML = html || `<div class="empty-state"><h3>No data for this product yet</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
 }
