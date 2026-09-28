@@ -573,9 +573,17 @@ if(_params.get('buynow')==='1'){
 } else {
   cart = JSON.parse(localStorage.getItem('mtr_cart') || '[]');
   // normalise items saved by product pages: {name,qty,price} → {id,qty}
-  var nameToId = {'Natural Baby Food Mix':1,'Growth Mix':2,'Daily Millet Mix':3};
+  // productId (FP01/FP02/FP03) is the reliable key; name is a fallback covering
+  // both current and historical product names (renamed since in Firebase).
+  var productIdToId = {'FP01':1,'FP02':2,'FP03':3};
+  var nameToId = {
+    'Natural Baby Food Mix':1, 'Natural Baby Starter Mix':1,
+    'Growth Mix':2, 'Natural Baby Growth Mix':2,
+    'Daily Millet Mix':3, 'Natural Baby Millet Mix':3
+  };
   cart = cart.map(function(c){
     if(c.id) return c;
+    if(c.productId && productIdToId[c.productId]) return {id: productIdToId[c.productId], qty: c.qty||1};
     var base = (c.name||'').replace(/ \(.*\)/,'');
     return {id: nameToId[base]||0, qty: c.qty||1};
   }).filter(function(c){return c.id>0;});
@@ -1053,9 +1061,15 @@ renderCart();
       if(_snap.exists()){
         const fbItems = _snap.data().items || [];
         if(fbItems.length){
-          var _nameToId = {'Natural Baby Food Mix':1,'Growth Mix':2,'Daily Millet Mix':3};
+          var _productIdToId = {'FP01':1,'FP02':2,'FP03':3};
+          var _nameToId = {
+            'Natural Baby Food Mix':1, 'Natural Baby Starter Mix':1,
+            'Growth Mix':2, 'Natural Baby Growth Mix':2,
+            'Daily Millet Mix':3, 'Natural Baby Millet Mix':3
+          };
           var _merged = fbItems.map(function(c){
             if(c.id) return c;
+            if(c.productId && _productIdToId[c.productId]) return {id:_productIdToId[c.productId],qty:c.qty||1};
             var base=(c.name||'').replace(/ \(.*\)/,'');
             return {id:_nameToId[base]||0,qty:c.qty||1};
           }).filter(function(c){return c.id>0;});
