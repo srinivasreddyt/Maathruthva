@@ -1100,17 +1100,14 @@ function populatePerformanceProductSelect() {
   const select = document.getElementById('performance-product-select');
   if (!select) return;
   const catalog = window.PRODUCT_CATALOG_ALL || window.PRODUCT_CATALOG;
-  let names = [];
+  const set = new Set();
   if (catalog) {
-    names = (Array.isArray(catalog) ? catalog : Object.values(catalog)).map(p => p.name).filter(Boolean);
+    (Array.isArray(catalog) ? catalog : Object.values(catalog)).forEach(p => p.name && set.add(p.name));
   }
-  if (!names.length) {
-    const set = new Set();
-    allOrdersFull.forEach(o => (o.items || []).forEach(i => i.name && set.add(i.name)));
-    allReviews.forEach(r => r.productName && set.add(r.productName));
-    names = Array.from(set);
-  }
-  names = Array.from(new Set(names)).sort();
+  // Historical orders/reviews may use older product names (renamed since) — include those too
+  allOrdersFull.forEach(o => (o.items || []).forEach(i => i.name && set.add(i.name)));
+  allReviews.forEach(r => r.productName && set.add(r.productName));
+  const names = Array.from(set).sort();
   const prevValue = select.value;
   select.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   if (names.includes(prevValue)) select.value = prevValue;
