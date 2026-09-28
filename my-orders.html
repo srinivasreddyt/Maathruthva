@@ -61,6 +61,19 @@
     .btn-track{background:#b5451b;color:#fff;border:none;padding:9px 20px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
     .btn-track:hover{background:#9a3a17;}
 
+    /* ── Review section ── */
+    .order-review{padding:14px 20px 18px;background:#fffaf3;border-top:1px solid #f0e6d3;}
+    .review-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+    .star-rating{display:flex;gap:4px;align-items:center;}
+    .star-rating .star{font-size:26px;cursor:pointer;color:#ddd;transition:color .15s;user-select:none;}
+    .star-rating .star.filled{color:#f5a623;}
+    .star-rating.readonly .star{cursor:default;}
+    .review-submit-row{display:flex;align-items:center;gap:14px;margin-top:10px;}
+    .btn-review-submit{background:#b5451b;color:#fff;border:none;padding:8px 20px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;}
+    .btn-review-submit:hover{background:#9a3a17;}
+    .btn-review-submit:disabled{background:#ccc;cursor:not-allowed;}
+    .review-submitted-note{font-size:13px;color:#2e7d32;display:flex;align-items:center;gap:8px;}
+
     /* ── Loading spinner (inline orders list) ── */
     .spinner{width:36px;height:36px;border:3px solid #f0e6d3;border-top-color:#b5451b;border-radius:50%;animation:spin .8s linear infinite;margin:60px auto;}
     @keyframes spin{to{transform:rotate(360deg);}}
@@ -142,7 +155,7 @@
 <script src="product-data.js"></script>
 <script type="module">
   import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, getDocs, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, getDocs, orderBy, query, addDoc, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig = {
@@ -232,6 +245,9 @@
       </div>`).join('');
 
     const addrText = renderAddress(data.address);
+    const productNames = items.map(i => i.name).join(', ');
+    const isDelivered = (data.status || '').toLowerCase() === 'delivered';
+    const reviewHtml = isDelivered ? renderReviewSection(id, data, productNames) : '';
 
     return `
       <div class="order-card">
@@ -245,6 +261,29 @@
         </div>
         <div class="order-items">${itemsHtml}</div>
         ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div><button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button></div>` : ''}
+        ${reviewHtml}
+      </div>`;
+  }
+
+  function renderReviewSection(id, data, productNames) {
+    if (data.reviewSubmitted) {
+      const r = data.reviewRating || 0;
+      const stars = [1,2,3,4,5].map(n => `<span class="star${n <= r ? ' filled' : ''}">★</span>`).join('');
+      return `
+        <div class="order-review">
+          <div class="review-label">Your Review</div>
+          <div class="review-submitted-note"><span class="star-rating readonly">${stars}</span> Thanks for rating this order!</div>
+        </div>`;
+    }
+    return `
+      <div class="order-review">
+        <div class="review-label">Rate this order</div>
+        <div class="star-rating" id="stars-${id}" data-rating="0">
+          ${[1,2,3,4,5].map(n => `<span class="star" data-value="${n}" onclick="setOrderRating('${id}',${n})">★</span>`).join('')}
+        </div>
+        <div class="review-submit-row">
+          <button class="btn-review-submit" id="submit-btn-${id}" disabled onclick="submitOrderReview('${id}', ${JSON.stringify(productNames).replace(/"/g,'&quot;')})">Submit Review</button>
+        </div>
       </div>`;
   }
 
@@ -276,6 +315,50 @@
     hideLoader();
   }
   } // end loadOrders
+
+  window.setOrderRating = function(orderId, value) {
+    const wrap = document.getElementById('stars-' + orderId);
+    if (!wrap) return;
+    wrap.dataset.rating = value;
+    wrap.querySelectorAll('.star').forEach(s => {
+      s.classList.toggle('filled', Number(s.dataset.value) <= value);
+    });
+    const btn = document.getElementById('submit-btn-' + orderId);
+    if (btn) btn.disabled = false;
+  };
+
+  window.submitOrderReview = async function(orderId, productNames) {
+    const wrap = document.getElementById('stars-' + orderId);
+    const rating = wrap ? Number(wrap.dataset.rating) : 0;
+    if (!rating) return;
+    const btn = document.getElementById('submit-btn-' + orderId);
+    const user = JSON.parse(localStorage.getItem('mtr_user') || 'null');
+    if (!user || !user.uid) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+    try {
+      await addDoc(collection(db, 'reviews'), {
+        orderId: orderId,
+        productName: productNames,
+        rating: rating,
+        email: user.email || null,
+        phone: user.phone || null,
+        uid: user.uid,
+        date: serverTimestamp()
+      });
+      await updateDoc(doc(db, 'users', user.uid, 'orders', orderId), {
+        reviewSubmitted: true,
+        reviewRating: rating
+      });
+      const card = wrap.closest('.order-review');
+      if (card) {
+        const stars = [1,2,3,4,5].map(n => `<span class="star${n <= rating ? ' filled' : ''}">★</span>`).join('');
+        card.innerHTML = `<div class="review-label">Your Review</div><div class="review-submitted-note"><span class="star-rating readonly">${stars}</span> Thanks for rating this order!</div>`;
+      }
+    } catch (e) {
+      alert('Could not submit review: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Review'; }
+    }
+  };
 
   loadOrders();
 </script>
