@@ -453,8 +453,9 @@
       </div>
       <div class="date-picker-wrap">
         <label>Year</label>
-        <select class="date-input" id="performance-year-select" onchange="adminRenderPerformance()"></select>
+        <input type="number" class="year-input" id="performance-year-input" placeholder="All" min="2020" max="2100">
       </div>
+      <button class="refresh-btn" id="performance-clear-year-btn" onclick="adminClearPerformanceYear()" style="display:none;">✕ All Years</button>
       <button class="refresh-btn" onclick="adminLoadPerformance()">↻ Refresh</button>
       <span id="performance-last-updated" style="font-size:12px;color:#aaa;"></span>
     </div>
@@ -1175,16 +1176,30 @@ function populatePerformanceProductSelect() {
 }
 
 function populatePerformanceYearSelect() {
-  const select = document.getElementById('performance-year-select');
-  if (!select) return;
-  const years = new Set();
-  allOrdersFull.forEach(o => { if (o.date) years.add(o.date.slice(0, 4)); });
-  allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(d.slice(0, 4)); });
-  const sortedYears = Array.from(years).sort().reverse();
-  const prevValue = select.value;
-  select.innerHTML = '<option value="all">All Years</option>' + sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
-  if (sortedYears.includes(prevValue)) select.value = prevValue;
-  else select.value = 'all';
+  const input = document.getElementById('performance-year-input');
+  if (!input) return;
+  if (!input.value) {
+    const years = new Set();
+    allOrdersFull.forEach(o => { if (o.date) years.add(o.date.slice(0, 4)); });
+    allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(d.slice(0, 4)); });
+    const sortedYears = Array.from(years).sort().reverse();
+    input.min = sortedYears.length ? sortedYears[sortedYears.length - 1] : 2020;
+    input.max = sortedYears.length ? sortedYears[0] : new Date().getFullYear();
+  }
+  if (!input.dataset.bound) {
+    input.dataset.bound = '1';
+    input.addEventListener('change', () => {
+      document.getElementById('performance-clear-year-btn').style.display = input.value ? 'inline-flex' : 'none';
+      renderPerformance();
+    });
+  }
+  renderPerformance();
+}
+
+function clearPerformanceYear() {
+  const input = document.getElementById('performance-year-input');
+  input.value = '';
+  document.getElementById('performance-clear-year-btn').style.display = 'none';
   renderPerformance();
 }
 
@@ -1324,8 +1339,8 @@ function renderPerformance() {
     return;
   }
 
-  const yearSelect = document.getElementById('performance-year-select');
-  const selectedYear = yearSelect ? yearSelect.value : 'all';
+  const yearInput = document.getElementById('performance-year-input');
+  const selectedYear = (yearInput && yearInput.value) ? yearInput.value : 'all';
 
   const revenueByMonth = {};
   const unitsByMonth = {};
@@ -1476,6 +1491,7 @@ window.adminSetReviewsFilterMode = setReviewsFilterMode;
 window.adminSetRevenueFilterMode = setRevenueFilterMode;
 window.adminLoadRevenue = loadRevenue;
 window.adminLoadPerformance = loadPerformance;
+window.adminClearPerformanceYear = clearPerformanceYear;
 window.adminRenderPerformance = renderPerformance;
 window.adminClearReviewsDate = clearReviewsDate;
 window.adminClearQueriesDate = clearQueriesDate;
