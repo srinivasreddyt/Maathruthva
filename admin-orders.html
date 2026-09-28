@@ -36,6 +36,12 @@
     /* ── Controls ── */
     .controls{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
     .date-picker-wrap{display:flex;align-items:center;gap:10px;}
+    .filter-mode-toggle{display:flex;gap:4px;background:#f0e6d3;border-radius:10px;padding:3px;}
+    .filter-mode-btn{padding:6px 14px;border:none;border-radius:8px;background:transparent;color:#888;font-family:'Jost',sans-serif;font-size:12px;cursor:pointer;}
+    .filter-mode-btn.active{background:#fff;color:#b5451b;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+    .month-input,.year-input{padding:9px 14px;border:1.5px solid #e0d8cc;border-radius:10px;font-family:'Jost',sans-serif;font-size:14px;color:#333;background:#fff;outline:none;}
+    .month-input:focus,.year-input:focus{border-color:#b5451b;}
+    .year-input{width:100px;}
     .date-picker-wrap label{font-size:13px;color:#888;font-weight:500;}
     .date-input{padding:9px 14px;border:1.5px solid #e0d8cc;border-radius:10px;font-family:'Jost',sans-serif;font-size:14px;color:#333;background:#fff;cursor:pointer;outline:none;}
     .date-input:focus{border-color:#b5451b;}
@@ -214,9 +220,22 @@
 
   <!-- Controls -->
   <div class="controls">
-    <div class="date-picker-wrap">
+    <div class="filter-mode-toggle">
+      <button class="filter-mode-btn active" data-mode="day" onclick="adminSetOrdersFilterMode('day')">Day</button>
+      <button class="filter-mode-btn" data-mode="month" onclick="adminSetOrdersFilterMode('month')">Month</button>
+      <button class="filter-mode-btn" data-mode="year" onclick="adminSetOrdersFilterMode('year')">Year</button>
+    </div>
+    <div class="date-picker-wrap" id="orders-day-picker-wrap">
       <label>Orders for</label>
       <input type="date" class="date-input" id="date-picker">
+    </div>
+    <div class="date-picker-wrap" id="orders-month-picker-wrap" style="display:none;">
+      <label>Orders for</label>
+      <input type="month" class="month-input" id="month-picker">
+    </div>
+    <div class="date-picker-wrap" id="orders-year-picker-wrap" style="display:none;">
+      <label>Orders for</label>
+      <input type="number" class="year-input" id="year-picker" placeholder="YYYY" min="2020" max="2100">
     </div>
     <button class="refresh-btn" onclick="adminLoadOrders()">↻ Refresh</button>
     <span id="last-updated" style="font-size:12px;color:#aaa;"></span>
@@ -265,9 +284,22 @@
   <!-- Queries section -->
   <div id="queries-section" style="display:none;">
     <div class="controls">
-      <div class="date-picker-wrap">
+      <div class="filter-mode-toggle">
+        <button class="filter-mode-btn" data-mode="day" onclick="adminSetQueriesFilterMode('day')">Day</button>
+        <button class="filter-mode-btn" data-mode="month" onclick="adminSetQueriesFilterMode('month')">Month</button>
+        <button class="filter-mode-btn" data-mode="year" onclick="adminSetQueriesFilterMode('year')">Year</button>
+      </div>
+      <div class="date-picker-wrap" id="queries-day-picker-wrap" style="display:none;">
         <label>Queries for</label>
         <input type="date" class="date-input" id="queries-date-picker">
+      </div>
+      <div class="date-picker-wrap" id="queries-month-picker-wrap" style="display:none;">
+        <label>Queries for</label>
+        <input type="month" class="month-input" id="queries-month-picker">
+      </div>
+      <div class="date-picker-wrap" id="queries-year-picker-wrap" style="display:none;">
+        <label>Queries for</label>
+        <input type="number" class="year-input" id="queries-year-picker" placeholder="YYYY" min="2020" max="2100">
       </div>
       <button class="refresh-btn" id="queries-clear-date-btn" onclick="adminClearQueriesDate()" style="display:none;">✕ Show all dates</button>
       <button class="refresh-btn" onclick="adminLoadQueries()">↻ Refresh</button>
@@ -286,6 +318,24 @@
   <!-- Reviews section -->
   <div id="reviews-section" style="display:none;">
     <div class="controls">
+      <div class="filter-mode-toggle">
+        <button class="filter-mode-btn" data-mode="day" onclick="adminSetReviewsFilterMode('day')">Day</button>
+        <button class="filter-mode-btn" data-mode="month" onclick="adminSetReviewsFilterMode('month')">Month</button>
+        <button class="filter-mode-btn" data-mode="year" onclick="adminSetReviewsFilterMode('year')">Year</button>
+      </div>
+      <div class="date-picker-wrap" id="reviews-day-picker-wrap" style="display:none;">
+        <label>Reviews for</label>
+        <input type="date" class="date-input" id="reviews-date-picker">
+      </div>
+      <div class="date-picker-wrap" id="reviews-month-picker-wrap" style="display:none;">
+        <label>Reviews for</label>
+        <input type="month" class="month-input" id="reviews-month-picker">
+      </div>
+      <div class="date-picker-wrap" id="reviews-year-picker-wrap" style="display:none;">
+        <label>Reviews for</label>
+        <input type="number" class="year-input" id="reviews-year-picker" placeholder="YYYY" min="2020" max="2100">
+      </div>
+      <button class="refresh-btn" id="reviews-clear-date-btn" onclick="adminClearReviewsDate()" style="display:none;">✕ Show all dates</button>
       <button class="refresh-btn" onclick="adminLoadReviews()">↻ Refresh</button>
       <span id="reviews-last-updated" style="font-size:12px;color:#aaa;"></span>
       <div class="search-wrap">
@@ -337,27 +387,64 @@ function showAdminUI() {
   document.getElementById('admin-main').style.display = 'block';
 }
 
+let ordersFilterMode = 'day';
+
 function initDashboard() {
   const istDate = new Date(Date.now() + 5.5 * 60 * 60000);
   const today = istDate.toISOString().slice(0, 10);
   document.getElementById('date-picker').value = today;
+  document.getElementById('month-picker').value = today.slice(0, 7);
+  document.getElementById('year-picker').value = today.slice(0, 4);
   document.getElementById('date-picker').addEventListener('change', loadOrders);
+  document.getElementById('month-picker').addEventListener('change', loadOrders);
+  document.getElementById('year-picker').addEventListener('change', loadOrders);
   loadOrders();
+}
+
+function setOrdersFilterMode(mode) {
+  ordersFilterMode = mode;
+  document.querySelectorAll('#orders-section .filter-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('orders-day-picker-wrap').style.display = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('orders-month-picker-wrap').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('orders-year-picker-wrap').style.display = mode === 'year' ? 'flex' : 'none';
+  loadOrders();
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
 }
 
 async function loadOrders() {
   const grid = document.getElementById('orders-grid');
   grid.innerHTML = '<div class="spinner"></div>';
-  const date = document.getElementById('date-picker').value;
-  if (!date) return;
+
+  let startDate, endDate;
+  if (ordersFilterMode === 'day') {
+    const date = document.getElementById('date-picker').value;
+    if (!date) return;
+    startDate = endDate = date;
+  } else if (ordersFilterMode === 'month') {
+    const month = document.getElementById('month-picker').value; // YYYY-MM
+    if (!month) return;
+    const [y, m] = month.split('-').map(Number);
+    startDate = `${month}-01`;
+    endDate = `${month}-${String(daysInMonth(y, m)).padStart(2, '0')}`;
+  } else {
+    const year = document.getElementById('year-picker').value;
+    if (!year) return;
+    startDate = `${year}-01-01`;
+    endDate = `${year}-12-31`;
+  }
+
   try {
-    const q = query(
-      collection(db, 'all_orders'),
-      where('date', '==', date),
-      orderBy('createdAt', 'desc')
-    );
+    const q = (ordersFilterMode === 'day')
+      ? query(collection(db, 'all_orders'), where('date', '==', startDate), orderBy('createdAt', 'desc'))
+      : query(collection(db, 'all_orders'), where('date', '>=', startDate), where('date', '<=', endDate), orderBy('date', 'desc'));
     const snap = await getDocs(q);
     allOrders = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    if (ordersFilterMode !== 'day') {
+      allOrders.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
     updateStats();
     renderOrders();
@@ -580,6 +667,20 @@ function queryDateStr(q) {
   return ist.toISOString().slice(0, 10);
 }
 
+let queriesFilterMode = 'day';
+
+function setQueriesFilterMode(mode) {
+  queriesFilterMode = mode;
+  document.querySelectorAll('#queries-section .filter-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('queries-day-picker-wrap').style.display = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('queries-month-picker-wrap').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('queries-year-picker-wrap').style.display = mode === 'year' ? 'flex' : 'none';
+  const input = mode === 'day' ? document.getElementById('queries-date-picker')
+              : mode === 'month' ? document.getElementById('queries-month-picker')
+              : document.getElementById('queries-year-picker');
+  setQueriesDateFilter(input.value);
+}
+
 function setQueriesDateFilter(val) {
   queriesDateFilter = val;
   document.getElementById('queries-clear-date-btn').style.display = val ? 'inline-flex' : 'none';
@@ -589,6 +690,8 @@ function setQueriesDateFilter(val) {
 function clearQueriesDate() {
   queriesDateFilter = '';
   document.getElementById('queries-date-picker').value = '';
+  document.getElementById('queries-month-picker').value = '';
+  document.getElementById('queries-year-picker').value = '';
   document.getElementById('queries-clear-date-btn').style.display = 'none';
   renderQueries();
 }
@@ -612,7 +715,7 @@ let queriesSearchQuery = '';
 
 function renderQueries() {
   const grid = document.getElementById('queries-grid');
-  let filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q) === queriesDateFilter) : allQueries;
+  let filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q).startsWith(queriesDateFilter)) : allQueries;
   if (queriesSearchQuery) {
     const sq = queriesSearchQuery.toLowerCase();
     filtered = filtered.filter(q => {
@@ -680,6 +783,43 @@ function renderQueryCard(q) {
     </div>`;
 }
 
+function reviewDateStr(r) {
+  const dt = r.date?.toDate ? r.date.toDate() : null;
+  if (!dt) return '';
+  const ist = new Date(dt.getTime() + 5.5 * 60 * 60000);
+  return ist.toISOString().slice(0, 10);
+}
+
+let reviewsFilterMode = 'day';
+let reviewsDateFilter = '';
+
+function setReviewsFilterMode(mode) {
+  reviewsFilterMode = mode;
+  document.querySelectorAll('#reviews-section .filter-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('reviews-day-picker-wrap').style.display = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('reviews-month-picker-wrap').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('reviews-year-picker-wrap').style.display = mode === 'year' ? 'flex' : 'none';
+  const input = mode === 'day' ? document.getElementById('reviews-date-picker')
+              : mode === 'month' ? document.getElementById('reviews-month-picker')
+              : document.getElementById('reviews-year-picker');
+  setReviewsDateFilter(input.value);
+}
+
+function setReviewsDateFilter(val) {
+  reviewsDateFilter = val;
+  document.getElementById('reviews-clear-date-btn').style.display = val ? 'inline-flex' : 'none';
+  renderReviews();
+}
+
+function clearReviewsDate() {
+  reviewsDateFilter = '';
+  document.getElementById('reviews-date-picker').value = '';
+  document.getElementById('reviews-month-picker').value = '';
+  document.getElementById('reviews-year-picker').value = '';
+  document.getElementById('reviews-clear-date-btn').style.display = 'none';
+  renderReviews();
+}
+
 async function loadReviews() {
   const grid = document.getElementById('reviews-grid');
   grid.innerHTML = '<div class="spinner"></div>';
@@ -697,7 +837,7 @@ async function loadReviews() {
 
 function renderReviews() {
   const grid = document.getElementById('reviews-grid');
-  let filtered = allReviews;
+  let filtered = reviewsDateFilter ? allReviews.filter(r => reviewDateStr(r).startsWith(reviewsDateFilter)) : allReviews;
   if (reviewsSearchQuery) {
     const sq = reviewsSearchQuery.toLowerCase();
     filtered = filtered.filter(r => {
@@ -820,6 +960,7 @@ window.checkPin = function() {
 };
 window.lockAdmin = function() { sessionStorage.removeItem('mtr_admin'); location.reload(); };
 window.adminLoadOrders = loadOrders;
+window.adminSetOrdersFilterMode = setOrdersFilterMode;
 window.adminSetFilter = setFilter;
 window.adminUpdateStatus = updateStatus;
 window.adminSearch = adminSearch;
@@ -832,8 +973,16 @@ window.adminClearQueriesSearch = clearQueriesSearch;
 window.adminLoadReviews = loadReviews;
 window.adminSearchReviews = searchReviews;
 window.adminClearReviewsSearch = clearReviewsSearch;
+window.adminSetReviewsFilterMode = setReviewsFilterMode;
+window.adminClearReviewsDate = clearReviewsDate;
 window.adminClearQueriesDate = clearQueriesDate;
+window.adminSetQueriesFilterMode = setQueriesFilterMode;
 document.getElementById('queries-date-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
+document.getElementById('queries-month-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
+document.getElementById('queries-year-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
+document.getElementById('reviews-date-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
+document.getElementById('reviews-month-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
+document.getElementById('reviews-year-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
 
 // ── Auto-unlock if session still active ──
 if (sessionStorage.getItem('mtr_admin') === '1') {
