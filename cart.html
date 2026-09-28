@@ -482,17 +482,24 @@
         path = `orders`;
         ref = await addDoc(collection(db, 'orders'), enriched);
       }
-
-      // Also save to top-level all_orders collection (admin view, grouped by date)
-      const allOrderDocId = orderData.orderId || ref.id;
-      await setDoc(doc(db, 'all_orders', allOrderDocId), {
-        ...enriched,
-        docId: ref.id,
-        userPath: path
-      });
-
       console.log('Order saved at path:', path, '| Doc ID:', ref.id, '| Date:', dateStr);
       if(window.showToast) window.showToast('Order saved! ID: ' + ref.id);
+
+      // Also save to top-level all_orders collection (admin view, grouped by date).
+      // Independent try/catch + retry: this must not silently vanish if it fails,
+      // since the order above has already been saved successfully for the customer.
+      const allOrderDocId = orderData.orderId || ref.id;
+      const allOrderData = { ...enriched, docId: ref.id, userPath: path };
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await setDoc(doc(db, 'all_orders', allOrderDocId), allOrderData);
+          break;
+        } catch(e2) {
+          console.error(`all_orders save attempt ${attempt} failed:`, e2.code, e2.message);
+          if (attempt === 3) { if(window.showToast) window.showToast('Order saved, but admin sync failed. Contact support if needed.'); }
+          else await new Promise(r => setTimeout(r, 800 * attempt));
+        }
+      }
     } catch(e) {
       console.error('Firestore save order error:', e.code, e.message);
       if(window.showToast) window.showToast('Firestore error: ' + e.code);

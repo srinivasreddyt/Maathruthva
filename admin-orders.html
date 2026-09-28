@@ -260,7 +260,7 @@
 <script type="module">
 /* v3 */
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, collectionGroup, query, where, getDocs, doc, updateDoc, orderBy, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -408,6 +408,27 @@ async function searchFirestoreForQuery(q) {
     for (const field of ['orderId', 'paymentId']) {
       const snap = await getDocs(query(collection(db, 'all_orders'), where(field, '==', q)));
       snap.docs.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); results.push({ _id: d.id, ...d.data() }); } });
+    }
+    // Fallback: some orders never made it into all_orders (write failure at checkout).
+    // A collection-group query finds the order under users/{uid}/orders regardless.
+    if (!results.length) {
+      for (const field of ['orderId', 'paymentId']) {
+        const snap = await getDocs(query(collectionGroup(db, 'orders'), where(field, '==', q)));
+        for (const d of snap.docs) {
+          if (seen.has(d.id)) continue;
+          seen.add(d.id);
+          const data = d.data();
+          results.push({ _id: d.id, ...data });
+          // Backfill all_orders so future searches/date views pick it up without this fallback
+          const uidMatch = d.ref.path.match(/^users\/([^/]+)\/orders\//);
+          const allOrdersDocId = data.orderId || d.id;
+          setDoc(doc(db, 'all_orders', allOrdersDocId), {
+            ...data,
+            docId: d.id,
+            userPath: uidMatch ? `users/${uidMatch[1]}/orders` : null
+          }).catch(err => console.error('Backfill to all_orders failed:', err));
+        }
+      }
     }
     firestoreSearchResults = results;
     firestoreSearchQuery = q;
