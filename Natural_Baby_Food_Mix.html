@@ -297,7 +297,7 @@
       <h1 id="product-h1">Natural Baby Food Mix</h1>
       <div class="rating"><span class="stars">★★★★★</span><span class="count">4.9 · 214 verified reviews</span></div>
       <p class="lede">Your baby's gentle introduction to solids. Sprouted ragi and moong dal, naturally sweetened with dates and carrot — easy to digest, free from allergens, made fresh in small batches.</p>
-      <div class="price-row"><span class="price-now" id="price-now-display">₹299</span><span class="price-was">₹349</span></div>
+      <div class="price-row"><span class="price-now" id="price-now-display">₹299</span><span class="price-was" id="price-was-display">₹349</span></div>
       <div class="price-unit">200g pack · approx. 10 servings</div>
       <div class="qbenefits"><span class="qb">100% Natural Ingredients</span>
 <span class="qb">No Added Sugar</span>
@@ -473,6 +473,7 @@
     basePrice = entry.price;
     var subPrice = Math.round(basePrice*0.85);
     var pn = document.getElementById('price-now-display'); if(pn) pn.textContent = '₹'+basePrice;
+    var pw = document.getElementById('price-was-display'); if(pw && typeof entry.actualPrice === 'number') pw.textContent = '₹'+entry.actualPrice;
     var mo = document.getElementById('mode-price-onetime'); if(mo) mo.textContent = '₹'+basePrice;
     var ms = document.getElementById('mode-price-sub'); if(ms) ms.textContent = '₹'+subPrice;
     curPrice = (curMode==='Subscription') ? subPrice : basePrice;
