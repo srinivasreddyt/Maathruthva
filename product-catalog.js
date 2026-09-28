@@ -7,7 +7,7 @@
 (function () {
   const PROJECT_ID = 'maathruthva';
   const CACHE_KEY  = 'mtr_product_catalog';
-  const CACHE_TTL  = 2 * 60 * 1000; // 2 minutes
+  const CACHE_TTL  = 30 * 1000; // 30 seconds
 
   function fsVal(v) {
     if (!v) return undefined;
