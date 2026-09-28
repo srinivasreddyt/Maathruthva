@@ -1041,10 +1041,19 @@ let tt; function showToast(m){const t=document.getElementById('toast');t.textCon
 
 // Render cart immediately from localStorage
 renderCart();
-// Re-render once the live Firestore product catalog loads, so item names
-// reflect the current product name (renamed products don't show a stale name)
-if(window.PRODUCT_CATALOG) renderCart();
-else document.addEventListener('productCatalogReady', renderCart);
+// Sync PRODUCTS[].price from the live Firestore catalog and re-render, so cart
+// totals/checkout use the current price rather than the hardcoded fallback.
+function applyLivePrices(){
+  var cat = window.PRODUCT_CATALOG;
+  if(!cat) return;
+  PRODUCTS.forEach(function(p){
+    var entry = cat[p.productId];
+    if(entry && typeof entry.price === 'number') p.price = entry.price;
+  });
+  renderCart();
+}
+if(window.PRODUCT_CATALOG) applyLivePrices();
+else document.addEventListener('productCatalogReady', applyLivePrices);
 
 // Set up Firestore save in background
 (async function(){
