@@ -912,6 +912,21 @@ function summaryAction(){
 // ── Razorpay payment ──
 const BACKEND_URL = 'https://maathruthva-backend.vercel.app';
 
+function setPaymentButtonsLoading(loading){
+  const desktopBtn = document.getElementById('btn-summary-action');
+  const desktopText = document.getElementById('summary-btn-text');
+  const mobileBtn = document.getElementById('mobile-continue-payment-btn');
+  if(loading){
+    if(desktopBtn){ desktopBtn.disabled = true; desktopBtn.style.opacity = '.7'; desktopBtn.style.cursor = 'wait'; }
+    if(desktopText){ desktopText.dataset.origText = desktopText.textContent; desktopText.textContent = 'Connecting to payment…'; }
+    if(mobileBtn){ mobileBtn.disabled = true; mobileBtn.style.opacity = '.7'; mobileBtn.style.cursor = 'wait'; mobileBtn.dataset.origText = mobileBtn.textContent; mobileBtn.textContent = 'Connecting to payment…'; }
+  } else {
+    if(desktopBtn){ desktopBtn.disabled = false; desktopBtn.style.opacity = ''; desktopBtn.style.cursor = ''; }
+    if(desktopText && desktopText.dataset.origText){ desktopText.textContent = desktopText.dataset.origText; }
+    if(mobileBtn){ mobileBtn.disabled = false; mobileBtn.style.opacity = ''; mobileBtn.style.cursor = ''; if(mobileBtn.dataset.origText) mobileBtn.textContent = mobileBtn.dataset.origText; }
+  }
+}
+
 async function initPayment(){
   const addr=addresses[selectedAddr];
   if(!addr){ showToast('Please select a delivery address'); return; }
@@ -924,6 +939,11 @@ async function initPayment(){
   document.getElementById('step2').classList.add('done');
   document.getElementById('line2').classList.add('done');
   document.getElementById('step3').classList.add('active');
+
+  // Immediate feedback so the user knows the click registered while we
+  // wait on the backend — otherwise the UI looks frozen for a few seconds.
+  setPaymentButtonsLoading(true);
+  showToast('Connecting to payment gateway…');
 
   // Create order on backend (keeps Key Secret secure)
   let rzpOrderId = null;
@@ -941,6 +961,7 @@ async function initPayment(){
     document.getElementById('step2').classList.remove('done');
     document.getElementById('line2').classList.remove('done');
     document.getElementById('step3').classList.remove('active');
+    setPaymentButtonsLoading(false);
     return;
   }
 
@@ -1033,6 +1054,7 @@ async function initPayment(){
   };
   const rzp = new Razorpay(options);
   rzp.on('payment.failed', function(r){ showToast('Payment failed: '+r.error.description); });
+  setPaymentButtonsLoading(false);
   rzp.open();
 }
 
