@@ -402,17 +402,19 @@ async function searchFirestoreForQuery(q) {
   if (localMatch) return;
   searchingFirestore = true;
   if (searchQuery === q) renderOrders();
-  try {
-    const results = [];
-    const seen = new Set();
-    for (const field of ['orderId', 'paymentId']) {
+  const results = [];
+  const seen = new Set();
+  for (const field of ['orderId', 'paymentId']) {
+    try {
       const snap = await getDocs(query(collection(db, 'all_orders'), where(field, '==', q)));
       snap.docs.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); results.push({ _id: d.id, ...d.data() }); } });
-    }
-    // Fallback: some orders never made it into all_orders (write failure at checkout).
-    // A collection-group query finds the order under users/{uid}/orders regardless.
-    if (!results.length) {
-      for (const field of ['orderId', 'paymentId']) {
+    } catch (e) { console.error(`all_orders search by ${field} error:`, e); }
+  }
+  // Fallback: some orders never made it into all_orders (write failure at checkout).
+  // A collection-group query finds the order under users/{uid}/orders regardless.
+  if (!results.length) {
+    for (const field of ['orderId', 'paymentId']) {
+      try {
         const snap = await getDocs(query(collectionGroup(db, 'orders'), where(field, '==', q)));
         for (const d of snap.docs) {
           if (seen.has(d.id)) continue;
@@ -428,16 +430,13 @@ async function searchFirestoreForQuery(q) {
             userPath: uidMatch ? `users/${uidMatch[1]}/orders` : null
           }).catch(err => console.error('Backfill to all_orders failed:', err));
         }
-      }
+      } catch (e) { console.error(`collectionGroup search by ${field} error:`, e); }
     }
-    firestoreSearchResults = results;
-    firestoreSearchQuery = q;
-  } catch (e) {
-    console.error('Firestore search error:', e);
-  } finally {
-    searchingFirestore = false;
-    if (searchQuery === q) renderOrders();
   }
+  firestoreSearchResults = results;
+  firestoreSearchQuery = q;
+  searchingFirestore = false;
+  if (searchQuery === q) renderOrders();
 }
 
 function adminClearSearch() {
