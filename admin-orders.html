@@ -148,6 +148,16 @@
     .query-contact{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#666;margin-bottom:10px;}
     .query-message{font-size:14px;color:#444;line-height:1.6;background:#fdf8f2;border-radius:10px;padding:12px 14px;}
     .query-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;background:#fff3cd;color:#856404;}
+    .query-badge.resolved{background:#d4edda;color:#155724;}
+    .query-resolution-wrap{margin-top:12px;padding-top:12px;border-top:1px solid #f0e6d3;}
+    .query-resolution-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:8px;font-weight:500;}
+    .query-resolution-input{width:100%;padding:9px 12px;border:1.5px solid #e0d8cc;border-radius:10px;font-family:'Jost',sans-serif;font-size:13px;color:#333;resize:vertical;outline:none;}
+    .query-resolution-input:focus{border-color:#b5451b;}
+    .query-resolution-row{display:flex;justify-content:flex-end;margin-top:8px;}
+    .btn-resolve{background:#b5451b;color:#fff;border:none;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:12px;cursor:pointer;}
+    .btn-resolve:hover{background:#9a3a17;}
+    .btn-resolve:disabled{background:#ccc;cursor:not-allowed;}
+    .query-resolution-text{font-size:13px;color:#444;background:#f4f9f4;border-radius:10px;padding:10px 14px;line-height:1.5;}
   </style>
 <script src="product-catalog.js"></script>
 </head>
@@ -260,7 +270,7 @@
 <script type="module">
 /* v3 */
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -571,22 +581,62 @@ function renderQueries() {
   grid.innerHTML = filtered.map(renderQueryCard).join('');
 }
 
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function renderQueryCard(q) {
   const dt = q.createdAt?.toDate ? q.createdAt.toDate() : null;
   const dateStr = dt ? dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const timeStr = dt ? dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+  const isResolved = q.status === 'resolved';
+  const statusBadge = `<span class="query-badge${isResolved ? ' resolved' : ''}">${isResolved ? 'Resolved' : 'Open'}</span>`;
+  const resolutionHtml = isResolved
+    ? `<div class="query-resolution-wrap"><div class="query-resolution-label">Resolution</div><div class="query-resolution-text">${escapeHtml(q.resolution)}</div></div>`
+    : `<div class="query-resolution-wrap">
+         <div class="query-resolution-label">Resolution</div>
+         <textarea class="query-resolution-input" id="resolution-${q._id}" placeholder="What did you tell the customer?" rows="2"></textarea>
+         <div class="query-resolution-row">
+           <button class="btn-resolve" id="resolve-btn-${q._id}" onclick="adminSaveResolution('${q._id}')">Mark Resolved</button>
+         </div>
+       </div>`;
   return `
     <div class="query-card">
       <div class="query-card-head">
         <span class="query-name">${q.name || 'Unknown'}</span>
-        <span class="query-time">${dateStr}${timeStr ? ' · ' + timeStr : ''}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${statusBadge}
+          <span class="query-time">${dateStr}${timeStr ? ' · ' + timeStr : ''}</span>
+        </div>
       </div>
       <div class="query-contact">
         ${q.mobile ? `<span>📱 ${q.mobile}</span>` : ''}
         ${q.email ? `<span>✉ ${q.email}</span>` : ''}
       </div>
       <div class="query-message">${q.message || ''}</div>
+      ${resolutionHtml}
     </div>`;
+}
+
+async function saveResolution(docId) {
+  const textarea = document.getElementById('resolution-' + docId);
+  const resolution = textarea ? textarea.value.trim() : '';
+  if (!resolution) { alert('Please enter a resolution before marking as resolved.'); return; }
+  const btn = document.getElementById('resolve-btn-' + docId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    await updateDoc(doc(db, 'customer_queries', docId), {
+      resolution: resolution,
+      status: 'resolved',
+      resolvedAt: serverTimestamp()
+    });
+    const q = allQueries.find(x => x._id === docId);
+    if (q) { q.resolution = resolution; q.status = 'resolved'; }
+    renderQueries();
+  } catch (e) {
+    alert('Error saving resolution: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Mark Resolved'; }
+  }
 }
 
 async function updateStatus(docId, newStatus) {
@@ -641,6 +691,7 @@ window.adminSearch = adminSearch;
 window.adminClearSearch = adminClearSearch;
 window.adminSetSection = setSection;
 window.adminLoadQueries = loadQueries;
+window.adminSaveResolution = saveResolution;
 window.adminClearQueriesDate = clearQueriesDate;
 document.getElementById('queries-date-picker').addEventListener('change', (e) => setQueriesDateFilter(e.target.value));
 
