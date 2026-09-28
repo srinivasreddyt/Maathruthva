@@ -184,7 +184,15 @@
   @media(max-width:720px){
     .brand-logo{width:42px;height:42px;} .brand-wordmark{height:32px;}
     .account-btn{display:none;} .cart-pill{padding:9px 16px;font-size:.72rem;}
-    .cat-grid{grid-template-columns:1fr 1fr;}
+    .cat-grid{grid-template-columns:1fr 1fr;gap:14px;}
+    .cat-card{min-height:210px;border-radius:16px;}
+    .cat-card.has-img{min-height:210px;}
+    .cat-illus span{width:60px;height:60px;font-size:1.7rem;}
+    .cat-body{padding:14px 14px 16px;}
+    .cat-body h3{font-size:1.05rem;margin-bottom:3px;}
+    .cat-body p{font-size:.72rem;margin-bottom:8px;-webkit-line-clamp:2;}
+    .cat-link{font-size:.62rem;}
+    .cat-badge{top:10px;right:10px;padding:4px 10px;font-size:.56rem;}
   }
   @media(max-width:560px){
     .wrap{padding:0 20px;} .nav{gap:8px;height:62px;} .nav-left{gap:6px;}
@@ -194,6 +202,13 @@
     .foot-about{margin:0 auto;} .foot-bottom{justify-content:center;text-align:center;}
     .sub-form{flex-direction:column;} .hero h1{font-size:1.9rem;} .sec-title{font-size:2rem;} .hero-emblem{width:160px;height:160px;margin-bottom:10px;} .hero{padding:24px 0 16px;min-height:calc(100vh - 180px);min-height:calc(100svh - 90px);align-items:flex-start;} .hero-eyebrow{margin-bottom:4px;font-size:.68rem;} .hero p{font-size:.88rem;margin-bottom:36px;}
     .values .wrap{gap:24px;}
+  }
+  @media(max-width:400px){
+    .cat-card{min-height:190px;}
+    .cat-card.has-img{min-height:190px;}
+    .cat-illus span{width:52px;height:52px;font-size:1.5rem;}
+    .cat-body h3{font-size:.98rem;}
+    .cat-body p{font-size:.68rem;}
   }
   @media(max-width:380px){
     .brand-logo{width:34px;height:34px;} .brand-wordmark{height:25px;}
