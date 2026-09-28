@@ -138,6 +138,15 @@
     .rev-bar-wrap{flex:1;margin:0 16px;background:#f4efe6;border-radius:6px;height:8px;overflow:hidden;}
     .rev-bar{height:100%;background:linear-gradient(90deg,#e2a37a,#b5451b);border-radius:6px;}
 
+    /* ── Product ratings ── */
+    .rating-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #faf5ee;font-size:14px;gap:16px;}
+    .rating-row:last-child{border-bottom:none;}
+    .rating-row-label{color:#444;min-width:160px;flex-shrink:0;}
+    .rating-row-count{color:#aaa;font-size:12px;display:block;}
+    .rating-bar-wrap{flex:1;background:#f4efe6;border-radius:6px;height:10px;overflow:hidden;}
+    .rating-bar{height:100%;background:linear-gradient(90deg,#f7c873,#f5a623);border-radius:6px;}
+    .rating-row-val{color:#f5a623;font-weight:600;min-width:64px;text-align:right;flex-shrink:0;}
+
     @media(max-width:768px){
       .stats{grid-template-columns:1fr 1fr;}
       .order-card-body{grid-template-columns:1fr;}
@@ -405,6 +414,8 @@
     </div>
 
     <div id="revenue-breakdown"></div>
+
+    <div id="revenue-ratings" style="margin-top:24px;"></div>
   </div>
 
 </div>
@@ -1008,6 +1019,7 @@ async function loadRevenue() {
     revenueLoaded = true;
     document.getElementById('revenue-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
     renderRevenue(orders);
+    await loadAndRenderProductRatings(startDate, endDate);
   } catch (e) {
     const indexUrl = e.message.match(/https:\/\/\S+/)?.[0] || '';
     const indexLink = indexUrl ? `<br><br><a href="${indexUrl}" target="_blank" style="color:#b5451b;font-weight:500;">→ Click here to create the required Firestore index</a> (takes ~1 min)` : '';
@@ -1057,6 +1069,53 @@ function renderRevenue(orders) {
       </div>`;
   }).join('');
   breakdown.innerHTML = `<div class="rev-breakdown-card"><div class="rev-breakdown-title">Revenue by day</div>${rowsHtml}</div>`;
+}
+
+async function loadAndRenderProductRatings(startDate, endDate) {
+  const container = document.getElementById('revenue-ratings');
+  container.innerHTML = '<div class="spinner"></div>';
+  try {
+    if (!reviewsLoaded) {
+      const snap = await getDocs(query(collection(db, 'reviews'), orderBy('date', 'desc')));
+      allReviews = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      reviewsLoaded = true;
+    }
+    const filtered = allReviews.filter(r => {
+      const d = reviewDateStr(r);
+      return d && d >= startDate && d <= endDate;
+    });
+    renderProductRatings(filtered);
+  } catch (e) {
+    container.innerHTML = `<div class="error-box">Error loading product ratings: ${e.message}</div>`;
+  }
+}
+
+function renderProductRatings(reviews) {
+  const container = document.getElementById('revenue-ratings');
+  if (!reviews.length) {
+    container.innerHTML = `<div class="rev-breakdown-card"><div class="rev-breakdown-title">Product Ratings</div><div class="empty-state"><h3>No reviews in this period</h3><p>Try a different date range.</p></div></div>`;
+    return;
+  }
+  const byProduct = {};
+  reviews.forEach(r => {
+    const name = r.productName || 'Unknown product';
+    if (!byProduct[name]) byProduct[name] = { sum: 0, count: 0 };
+    byProduct[name].sum += (r.rating || 0);
+    byProduct[name].count += 1;
+  });
+  const products = Object.keys(byProduct).sort((a, b) => (byProduct[b].sum / byProduct[b].count) - (byProduct[a].sum / byProduct[a].count));
+  const rowsHtml = products.map(name => {
+    const { sum, count } = byProduct[name];
+    const avg = sum / count;
+    const pct = Math.round((avg / 5) * 100);
+    return `
+      <div class="rating-row">
+        <span class="rating-row-label">${escapeHtml(name)}<span class="rating-row-count">${count} review${count !== 1 ? 's' : ''}</span></span>
+        <div class="rating-bar-wrap"><div class="rating-bar" style="width:${pct}%"></div></div>
+        <span class="rating-row-val">★ ${avg.toFixed(1)}</span>
+      </div>`;
+  }).join('');
+  container.innerHTML = `<div class="rev-breakdown-card"><div class="rev-breakdown-title">Product Ratings</div>${rowsHtml}</div>`;
 }
 
 async function saveResolution(docId) {
