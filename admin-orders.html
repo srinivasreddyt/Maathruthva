@@ -150,6 +150,22 @@
     .vbar-fill.units{background:linear-gradient(180deg,#a8c98a,#4a6830);}
     .vbar-fill.rating{background:linear-gradient(180deg,#f7c873,#f5a623);}
     .vbar-label{font-size:11px;color:#888;margin-top:8px;text-align:center;white-space:nowrap;}
+
+    /* ── Merged performance chart ── */
+    .merged-legend{display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap;}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#666;}
+    .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+    .legend-dot.revenue{background:linear-gradient(135deg,#e2a37a,#b5451b);}
+    .legend-dot.units{background:linear-gradient(135deg,#a8c98a,#4a6830);}
+    .legend-dot.rating{background:linear-gradient(135deg,#f7c873,#f5a623);}
+    .merged-chart{display:flex;align-items:flex-end;gap:22px;height:210px;padding:0 4px;overflow-x:auto;}
+    .merged-month-group{display:flex;flex-direction:column;align-items:center;height:100%;min-width:96px;flex-shrink:0;}
+    .merged-bars-row{display:flex;align-items:flex-end;gap:5px;height:170px;flex:1;}
+    .merged-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+    .merged-bar-val{font-size:10px;font-weight:600;color:#333;margin-bottom:4px;white-space:nowrap;}
+    .merged-bar-track{width:20px;flex:1;display:flex;align-items:flex-end;background:#f4efe6;border-radius:5px 5px 0 0;overflow:hidden;}
+    .merged-bar-fill{width:100%;border-radius:5px 5px 0 0;}
+    .merged-month-label{font-size:11px;color:#888;margin-top:8px;white-space:nowrap;}
     .vbar-sub{font-size:10px;color:#bbb;display:block;}
     .perf-total{margin-top:18px;padding-top:16px;border-top:1px solid #f0e6d3;display:flex;align-items:center;justify-content:space-between;}
     .perf-total-label{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
@@ -1230,6 +1246,74 @@ function renderPerfChart(title, months, valuesByMonth, countsByMonth, formatFn, 
   return `<div class="perf-chart"><div class="perf-chart-title">${title}</div><div class="vbar-chart">${cols}</div>${totalHtml}</div>`;
 }
 
+function renderMergedPerfChart(months, revenueByMonth, unitsByMonth, ratingSumByMonth, ratingCountByMonth) {
+  const chronological = [...months].reverse();
+  const maxRevenue = Math.max(...chronological.map(m => revenueByMonth[m] || 0), 1);
+  const maxUnits = Math.max(...chronological.map(m => unitsByMonth[m] || 0), 1);
+  const maxRating = 5;
+
+  const groups = chronological.map(m => {
+    const revenue = revenueByMonth[m] || 0;
+    const units = unitsByMonth[m] || 0;
+    const ratingCount = ratingCountByMonth[m] || 0;
+    const rating = ratingCount ? (ratingSumByMonth[m] / ratingCount) : 0;
+
+    const revPct = Math.max(Math.round((revenue / maxRevenue) * 100), revenue ? 4 : 0);
+    const unitsPct = Math.max(Math.round((units / maxUnits) * 100), units ? 4 : 0);
+    const ratingPct = Math.max(Math.round((rating / maxRating) * 100), ratingCount ? 4 : 0);
+
+    return `
+      <div class="merged-month-group">
+        <div class="merged-bars-row">
+          <div class="merged-bar-col">
+            <span class="merged-bar-val">₹${revenue.toFixed(0)}</span>
+            <div class="merged-bar-track"><div class="merged-bar-fill revenue" style="height:${revPct}%"></div></div>
+          </div>
+          <div class="merged-bar-col">
+            <span class="merged-bar-val">${units}</span>
+            <div class="merged-bar-track"><div class="merged-bar-fill units" style="height:${unitsPct}%"></div></div>
+          </div>
+          <div class="merged-bar-col">
+            <span class="merged-bar-val">${ratingCount ? '★' + rating.toFixed(1) : '—'}</span>
+            <div class="merged-bar-track"><div class="merged-bar-fill rating" style="height:${ratingPct}%"></div></div>
+          </div>
+        </div>
+        <div class="merged-month-label">${monthLabel(m)}</div>
+      </div>`;
+  }).join('');
+
+  const totalRevenue = chronological.reduce((s, m) => s + (revenueByMonth[m] || 0), 0);
+  const totalUnits = chronological.reduce((s, m) => s + (unitsByMonth[m] || 0), 0);
+  const sumRatings = chronological.reduce((s, m) => s + (ratingSumByMonth[m] || 0), 0);
+  const sumCounts = chronological.reduce((s, m) => s + (ratingCountByMonth[m] || 0), 0);
+  const overallRating = sumCounts ? (sumRatings / sumCounts) : 0;
+
+  const totalsHtml = `
+    <div class="perf-total">
+      <span class="perf-total-label">Total Revenue</span>
+      <span class="perf-total-val revenue">₹${totalRevenue.toFixed(0)}</span>
+    </div>
+    <div class="perf-total">
+      <span class="perf-total-label">Total Units Ordered</span>
+      <span class="perf-total-val units">${totalUnits}</span>
+    </div>
+    <div class="perf-total">
+      <span class="perf-total-label">Overall Average Rating${sumCounts ? ' (' + sumCounts + ' review' + (sumCounts !== 1 ? 's' : '') + ' total)' : ''}</span>
+      <span class="perf-total-val rating">${sumCounts ? '★' + overallRating.toFixed(1) : '—'}</span>
+    </div>`;
+
+  return `<div class="perf-chart">
+    <div class="perf-chart-title">Monthly Performance</div>
+    <div class="merged-legend">
+      <span class="legend-item"><span class="legend-dot revenue"></span>Revenue</span>
+      <span class="legend-item"><span class="legend-dot units"></span>Units Ordered</span>
+      <span class="legend-item"><span class="legend-dot rating"></span>Avg Rating</span>
+    </div>
+    <div class="merged-chart">${groups}</div>
+    ${totalsHtml}
+  </div>`;
+}
+
 function renderPerformance() {
   const select = document.getElementById('performance-product-select');
   const product = select ? select.value : '';
@@ -1280,10 +1364,7 @@ function renderPerformance() {
     return;
   }
 
-  const html =
-    renderPerfChart('Monthly Revenue', allMonths, revenueByMonth, null, v => '₹' + v.toFixed(0), '', 'Total Revenue') +
-    renderPerfChart('Units Ordered per Month', allMonths, unitsByMonth, null, v => v + ' unit' + (v !== 1 ? 's' : ''), 'units', 'Total Units Ordered') +
-    renderPerfChart('Average Rating per Month', allMonths, ratingSumByMonth, ratingCountByMonth, v => '★ ' + v.toFixed(1), 'rating', 'Overall Average Rating');
+  const html = renderMergedPerfChart(allMonths, revenueByMonth, unitsByMonth, ratingSumByMonth, ratingCountByMonth);
 
   content.innerHTML = html || `<div class="empty-state"><h3>No data for this product yet</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
 }
