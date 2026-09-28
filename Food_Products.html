@@ -504,7 +504,7 @@
             <li>Zero allergens</li>
           </ul>
           <div class="card-foot">
-            <div class="price">₹299 <small>/ 200g</small></div>
+            <div class="price"><span data-price-pid="FP01">₹299</span> <small>/ 200g</small></div>
             <button class="add-btn" onclick="location.href='Natural_Baby_Food_Mix.html'">Buy Now</button>
           </div>
         </div>
@@ -522,7 +522,7 @@
             <li>Brain-supporting healthy fats</li>
           </ul>
           <div class="card-foot">
-            <div class="price">₹349 <small>/ 200g</small></div>
+            <div class="price"><span data-price-pid="FP02">₹349</span> <small>/ 200g</small></div>
             <button class="add-btn" onclick="location.href='Growth_Mix.html'">Buy Now</button>
           </div>
         </div>
@@ -540,7 +540,7 @@
             <li>Bajra, Beetroot &amp; Sesame</li>
           </ul>
           <div class="card-foot">
-            <div class="price">₹349 <small>/ 200g</small></div>
+            <div class="price"><span data-price-pid="FP03">₹349</span> <small>/ 200g</small></div>
             <button class="add-btn" onclick="location.href='Daily_Millet_Mix.html'">Buy Now</button>
           </div>
         </div>
@@ -897,6 +897,10 @@ function _applyProdNames(){
       var a = el.querySelector('a');
       if(a) a.textContent = entry.name; else el.textContent = entry.name;
     }
+  });
+  document.querySelectorAll('[data-price-pid]').forEach(function(el){
+    var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pricePid];
+    if(entry && typeof entry.price === 'number') el.textContent = '₹' + entry.price;
   });
 }
 if(window.PRODUCT_CATALOG) _applyProdNames();

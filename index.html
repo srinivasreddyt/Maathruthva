@@ -371,7 +371,7 @@
         <div class="prod-info">
           <h3 data-pid="FP01">Natural Baby Food Mix</h3>
           <div class="tag">Gentle Starter · 6+ Months</div>
-          <div class="prod-foot"><span class="prod-price">₹299</span>
+          <div class="prod-foot"><span class="prod-price" data-price-pid="FP01">₹299</span>
             <button class="prod-btn" onclick="location.href='Natural_Baby_Food_Mix.html'">View</button></div>
         </div>
       </div>
@@ -380,7 +380,7 @@
         <div class="prod-info">
           <h3 data-pid="FP02">Growth Mix</h3>
           <div class="tag">Protein + Calcium · 8+ Months</div>
-          <div class="prod-foot"><span class="prod-price">₹349</span>
+          <div class="prod-foot"><span class="prod-price" data-price-pid="FP02">₹349</span>
             <button class="prod-btn" onclick="location.href='Growth_Mix.html'">View</button></div>
         </div>
       </div>
@@ -389,7 +389,7 @@
         <div class="prod-info">
           <h3 data-pid="FP03">Daily Millet Mix</h3>
           <div class="tag">Iron + Folate · 8+ Months</div>
-          <div class="prod-foot"><span class="prod-price">₹349</span>
+          <div class="prod-foot"><span class="prod-price" data-price-pid="FP03">₹349</span>
             <button class="prod-btn" onclick="location.href='Daily_Millet_Mix.html'">View</button></div>
         </div>
       </div>
@@ -632,10 +632,11 @@ function renderCartDrawer(){
   var items = JSON.parse(localStorage.getItem('mtr_cart')||'[]');
   var body = document.getElementById('drawer-body');
   var total = 0;
+  var _cat = window.PRODUCT_CATALOG || {};
   var PRODS = {
-    1:{name:'Natural Baby Food Mix',price:299,icon:'[NB]'},
-    2:{name:'Growth Mix',price:349,icon:'[GM]'},
-    3:{name:'Daily Millet Mix',price:349,icon:'[DM]'}
+    1:{name:(_cat.FP01&&_cat.FP01.name)||'Natural Baby Food Mix',price:(_cat.FP01&&_cat.FP01.price)||299,icon:'[NB]'},
+    2:{name:(_cat.FP02&&_cat.FP02.name)||'Growth Mix',price:(_cat.FP02&&_cat.FP02.price)||349,icon:'[GM]'},
+    3:{name:(_cat.FP03&&_cat.FP03.name)||'Daily Millet Mix',price:(_cat.FP03&&_cat.FP03.price)||349,icon:'[DM]'}
   };
   var ICONS = {'Natural Baby Food Mix':'[NB]','Growth Mix':'[GM]','Daily Millet Mix':'[DM]'};
   if(!items.length){
@@ -759,6 +760,10 @@ function _applyProdNames(){
   document.querySelectorAll('[data-pid]').forEach(function(el){
     var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pid];
     if(entry && entry.name) el.textContent = entry.name;
+  });
+  document.querySelectorAll('[data-price-pid]').forEach(function(el){
+    var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pricePid];
+    if(entry && typeof entry.price === 'number') el.textContent = '₹' + entry.price;
   });
 }
 if(window.PRODUCT_CATALOG) _applyProdNames();
