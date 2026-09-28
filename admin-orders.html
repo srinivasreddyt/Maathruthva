@@ -591,15 +591,14 @@ function renderQueryCard(q) {
   const timeStr = dt ? dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
   const isResolved = q.status === 'resolved';
   const statusBadge = `<span class="query-badge${isResolved ? ' resolved' : ''}">${isResolved ? 'Resolved' : 'Open'}</span>`;
-  const resolutionHtml = isResolved
-    ? `<div class="query-resolution-wrap"><div class="query-resolution-label">Resolution</div><div class="query-resolution-text">${escapeHtml(q.resolution)}</div></div>`
-    : `<div class="query-resolution-wrap">
-         <div class="query-resolution-label">Resolution</div>
-         <textarea class="query-resolution-input" id="resolution-${q._id}" placeholder="What did you tell the customer?" rows="2"></textarea>
-         <div class="query-resolution-row">
-           <button class="btn-resolve" id="resolve-btn-${q._id}" onclick="adminSaveResolution('${q._id}')">Mark Resolved</button>
-         </div>
-       </div>`;
+  const resolutionHtml = `
+    <div class="query-resolution-wrap">
+      <div class="query-resolution-label">Resolution</div>
+      <textarea class="query-resolution-input" id="resolution-${q._id}" placeholder="What did you tell the customer?" rows="2">${escapeHtml(q.resolution || '')}</textarea>
+      <div class="query-resolution-row">
+        <button class="btn-resolve" id="resolve-btn-${q._id}" onclick="adminSaveResolution('${q._id}')">${isResolved ? 'Update' : 'Mark Resolved'}</button>
+      </div>
+    </div>`;
   return `
     <div class="query-card">
       <div class="query-card-head">
@@ -623,6 +622,7 @@ async function saveResolution(docId) {
   const resolution = textarea ? textarea.value.trim() : '';
   if (!resolution) { alert('Please enter a resolution before marking as resolved.'); return; }
   const btn = document.getElementById('resolve-btn-' + docId);
+  const originalLabel = btn ? btn.textContent : 'Mark Resolved';
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
   try {
     await updateDoc(doc(db, 'customer_queries', docId), {
@@ -635,7 +635,7 @@ async function saveResolution(docId) {
     renderQueries();
   } catch (e) {
     alert('Error saving resolution: ' + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = 'Mark Resolved'; }
+    if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
   }
 }
 
