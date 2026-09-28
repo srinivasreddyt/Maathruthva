@@ -267,7 +267,7 @@
           <div class="order-total">₹${data.total}</div>
         </div>
         <div class="order-items">${itemsHtml}</div>
-        ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div><button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button></div>` : ''}
+        ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div>${isDelivered ? '' : `<button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button>`}</div>` : ''}
         ${reviewHtml}
       </div>`;
   }
