@@ -127,6 +127,17 @@
     /* Error */
     .error-box{background:#fff3f3;border:1px solid #f5c6cb;border-radius:12px;padding:20px;color:#721c24;font-size:14px;margin:20px 0;}
 
+    /* ── Revenue breakdown ── */
+    .rev-breakdown-card{background:#fff;border-radius:14px;border:1px solid #ede6da;overflow:hidden;}
+    .rev-breakdown-title{padding:16px 20px;font-size:13px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #f0e6d3;}
+    .rev-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #faf5ee;font-size:14px;}
+    .rev-row:last-child{border-bottom:none;}
+    .rev-row-label{color:#444;}
+    .rev-row-count{color:#aaa;font-size:12px;margin-left:8px;}
+    .rev-row-amt{color:#b5451b;font-weight:600;}
+    .rev-bar-wrap{flex:1;margin:0 16px;background:#f4efe6;border-radius:6px;height:8px;overflow:hidden;}
+    .rev-bar{height:100%;background:linear-gradient(90deg,#e2a37a,#b5451b);border-radius:6px;}
+
     @media(max-width:768px){
       .stats{grid-template-columns:1fr 1fr;}
       .order-card-body{grid-template-columns:1fr;}
@@ -213,6 +224,7 @@
     <button class="section-tab active" data-section="orders" onclick="adminSetSection('orders')">Orders</button>
     <button class="section-tab" data-section="queries" onclick="adminSetSection('queries')">Queries</button>
     <button class="section-tab" data-section="reviews" onclick="adminSetSection('reviews')">Reviews</button>
+    <button class="section-tab" data-section="revenue" onclick="adminSetSection('revenue')">Revenue</button>
   </div>
 
   <!-- Orders section -->
@@ -349,6 +361,52 @@
     </div>
   </div>
 
+  <!-- Revenue section -->
+  <div id="revenue-section" style="display:none;">
+    <div class="controls">
+      <div class="filter-mode-toggle">
+        <button class="filter-mode-btn" data-mode="day" onclick="adminSetRevenueFilterMode('day')">Day</button>
+        <button class="filter-mode-btn" data-mode="month" onclick="adminSetRevenueFilterMode('month')">Month</button>
+        <button class="filter-mode-btn" data-mode="year" onclick="adminSetRevenueFilterMode('year')">Year</button>
+      </div>
+      <div class="date-picker-wrap" id="revenue-day-picker-wrap" style="display:none;">
+        <label>Revenue for</label>
+        <input type="date" class="date-input" id="revenue-date-picker">
+      </div>
+      <div class="date-picker-wrap" id="revenue-month-picker-wrap" style="display:none;">
+        <label>Revenue for</label>
+        <input type="month" class="month-input" id="revenue-month-picker">
+      </div>
+      <div class="date-picker-wrap" id="revenue-year-picker-wrap" style="display:none;">
+        <label>Revenue for</label>
+        <input type="number" class="year-input" id="revenue-year-picker" placeholder="YYYY" min="2020" max="2100">
+      </div>
+      <button class="refresh-btn" onclick="adminLoadRevenue()">↻ Refresh</button>
+      <span id="revenue-last-updated" style="font-size:12px;color:#aaa;"></span>
+    </div>
+
+    <div class="stats" id="revenue-stats">
+      <div class="stat-card">
+        <div class="stat-val revenue" id="revenue-total">—</div>
+        <div class="stat-label">Total Revenue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="revenue-order-count">—</div>
+        <div class="stat-label">Orders Counted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="revenue-avg">—</div>
+        <div class="stat-label">Avg Order Value</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="revenue-cancelled">—</div>
+        <div class="stat-label">Cancelled (excluded)</div>
+      </div>
+    </div>
+
+    <div id="revenue-breakdown"></div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -378,6 +436,8 @@ let queriesDateFilter = '';
 let allReviews = [];
 let reviewsLoaded = false;
 let reviewsSearchQuery = '';
+let revenueLoaded = false;
+let revenueFilterMode = 'day';
 
 // ── All functions defined first ──
 
@@ -656,8 +716,10 @@ function setSection(s) {
   document.getElementById('orders-section').style.display = s === 'orders' ? 'block' : 'none';
   document.getElementById('queries-section').style.display = s === 'queries' ? 'block' : 'none';
   document.getElementById('reviews-section').style.display = s === 'reviews' ? 'block' : 'none';
+  document.getElementById('revenue-section').style.display = s === 'revenue' ? 'block' : 'none';
   if (s === 'queries' && !queriesLoaded) loadQueries();
   if (s === 'reviews' && !reviewsLoaded) loadReviews();
+  if (s === 'revenue' && !revenueLoaded) { initRevenueDefaults(); loadRevenue(); }
 }
 
 function queryDateStr(q) {
@@ -892,6 +954,111 @@ function clearReviewsSearch() {
   renderReviews();
 }
 
+function initRevenueDefaults() {
+  const istDate = new Date(Date.now() + 5.5 * 60 * 60000);
+  const today = istDate.toISOString().slice(0, 10);
+  document.getElementById('revenue-date-picker').value = today;
+  document.getElementById('revenue-month-picker').value = today.slice(0, 7);
+  document.getElementById('revenue-year-picker').value = today.slice(0, 4);
+  document.querySelector('#revenue-section .filter-mode-btn[data-mode="day"]').classList.add('active');
+  document.getElementById('revenue-day-picker-wrap').style.display = 'flex';
+  document.getElementById('revenue-date-picker').addEventListener('change', loadRevenue);
+  document.getElementById('revenue-month-picker').addEventListener('change', loadRevenue);
+  document.getElementById('revenue-year-picker').addEventListener('change', loadRevenue);
+}
+
+function setRevenueFilterMode(mode) {
+  revenueFilterMode = mode;
+  document.querySelectorAll('#revenue-section .filter-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('revenue-day-picker-wrap').style.display = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('revenue-month-picker-wrap').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('revenue-year-picker-wrap').style.display = mode === 'year' ? 'flex' : 'none';
+  loadRevenue();
+}
+
+async function loadRevenue() {
+  const statsWrap = document.getElementById('revenue-stats');
+  const breakdown = document.getElementById('revenue-breakdown');
+  breakdown.innerHTML = '<div class="spinner"></div>';
+
+  let startDate, endDate;
+  if (revenueFilterMode === 'day') {
+    const date = document.getElementById('revenue-date-picker').value;
+    if (!date) return;
+    startDate = endDate = date;
+  } else if (revenueFilterMode === 'month') {
+    const month = document.getElementById('revenue-month-picker').value;
+    if (!month) return;
+    const [y, m] = month.split('-').map(Number);
+    startDate = `${month}-01`;
+    endDate = `${month}-${String(daysInMonth(y, m)).padStart(2, '0')}`;
+  } else {
+    const year = document.getElementById('revenue-year-picker').value;
+    if (!year) return;
+    startDate = `${year}-01-01`;
+    endDate = `${year}-12-31`;
+  }
+
+  try {
+    const q = (revenueFilterMode === 'day')
+      ? query(collection(db, 'all_orders'), where('date', '==', startDate))
+      : query(collection(db, 'all_orders'), where('date', '>=', startDate), where('date', '<=', endDate));
+    const snap = await getDocs(q);
+    const orders = snap.docs.map(d => d.data());
+    revenueLoaded = true;
+    document.getElementById('revenue-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+    renderRevenue(orders);
+  } catch (e) {
+    const indexUrl = e.message.match(/https:\/\/\S+/)?.[0] || '';
+    const indexLink = indexUrl ? `<br><br><a href="${indexUrl}" target="_blank" style="color:#b5451b;font-weight:500;">→ Click here to create the required Firestore index</a> (takes ~1 min)` : '';
+    breakdown.innerHTML = `<div class="error-box">Error loading revenue: ${e.message.split('You can create')[0].trim()}${indexLink}</div>`;
+  }
+}
+
+function renderRevenue(orders) {
+  const cancelled = orders.filter(o => o.status === 'cancelled');
+  const counted = orders.filter(o => o.status !== 'cancelled');
+  const total = counted.reduce((s, o) => s + (o.total || 0), 0);
+  const avg = counted.length ? total / counted.length : 0;
+
+  document.getElementById('revenue-total').textContent = '₹' + total.toFixed(0);
+  document.getElementById('revenue-order-count').textContent = counted.length;
+  document.getElementById('revenue-avg').textContent = '₹' + avg.toFixed(0);
+  document.getElementById('revenue-cancelled').textContent = cancelled.length;
+
+  const breakdown = document.getElementById('revenue-breakdown');
+  if (revenueFilterMode === 'day') {
+    breakdown.innerHTML = '';
+    return;
+  }
+
+  // Group by date for month/year view
+  const byDate = {};
+  counted.forEach(o => {
+    const d = o.date || 'unknown';
+    byDate[d] = (byDate[d] || 0) + (o.total || 0);
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+  if (!dates.length) {
+    breakdown.innerHTML = `<div class="empty-state"><h3>No revenue in this period</h3><p>Try a different date range.</p></div>`;
+    return;
+  }
+  const maxVal = Math.max(...Object.values(byDate));
+  const rowsHtml = dates.map(d => {
+    const amt = byDate[d];
+    const count = counted.filter(o => o.date === d).length;
+    const pct = maxVal ? Math.round((amt / maxVal) * 100) : 0;
+    const label = new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: revenueFilterMode === 'year' ? undefined : 'numeric' });
+    return `
+      <div class="rev-row">
+        <span class="rev-row-label">${label}<span class="rev-row-count">${count} order${count !== 1 ? 's' : ''}</span></span>
+        <div class="rev-bar-wrap"><div class="rev-bar" style="width:${pct}%"></div></div>
+        <span class="rev-row-amt">₹${amt.toFixed(0)}</span>
+      </div>`;
+  }).join('');
+  breakdown.innerHTML = `<div class="rev-breakdown-card"><div class="rev-breakdown-title">Revenue by day</div>${rowsHtml}</div>`;
+}
+
 async function saveResolution(docId) {
   const textarea = document.getElementById('resolution-' + docId);
   const resolution = textarea ? textarea.value.trim() : '';
@@ -974,6 +1141,8 @@ window.adminLoadReviews = loadReviews;
 window.adminSearchReviews = searchReviews;
 window.adminClearReviewsSearch = clearReviewsSearch;
 window.adminSetReviewsFilterMode = setReviewsFilterMode;
+window.adminSetRevenueFilterMode = setRevenueFilterMode;
+window.adminLoadRevenue = loadRevenue;
 window.adminClearReviewsDate = clearReviewsDate;
 window.adminClearQueriesDate = clearQueriesDate;
 window.adminSetQueriesFilterMode = setQueriesFilterMode;
