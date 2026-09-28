@@ -137,6 +137,10 @@
     .rev-row-amt{color:#b5451b;font-weight:600;}
     .rev-bar-wrap{flex:1;margin:0 16px;background:#f4efe6;border-radius:6px;height:8px;overflow:hidden;}
     .rev-bar{height:100%;background:linear-gradient(90deg,#e2a37a,#b5451b);border-radius:6px;}
+    .rev-bar.units{background:linear-gradient(90deg,#a8c98a,#4a6830);}
+    .rev-bar.rating{background:linear-gradient(90deg,#f7c873,#f5a623);}
+    .perf-chart{margin-bottom:22px;}
+    .perf-chart-title{font-size:15px;font-weight:600;color:#333;margin-bottom:10px;}
 
     @media(max-width:768px){
       .stats{grid-template-columns:1fr 1fr;}
@@ -225,6 +229,7 @@
     <button class="section-tab" data-section="queries" onclick="adminSetSection('queries')">Queries</button>
     <button class="section-tab" data-section="reviews" onclick="adminSetSection('reviews')">Reviews</button>
     <button class="section-tab" data-section="revenue" onclick="adminSetSection('revenue')">Revenue</button>
+    <button class="section-tab" data-section="performance" onclick="adminSetSection('performance')">Product Performance</button>
   </div>
 
   <!-- Orders section -->
@@ -407,6 +412,19 @@
     <div id="revenue-breakdown"></div>
   </div>
 
+  <!-- Product Performance section -->
+  <div id="performance-section" style="display:none;">
+    <div class="controls">
+      <div class="date-picker-wrap">
+        <label>Product</label>
+        <select class="date-input" id="performance-product-select" onchange="adminRenderPerformance()"></select>
+      </div>
+      <button class="refresh-btn" onclick="adminLoadPerformance()">↻ Refresh</button>
+      <span id="performance-last-updated" style="font-size:12px;color:#aaa;"></span>
+    </div>
+    <div id="performance-content"><div class="spinner"></div></div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -438,6 +456,9 @@ let reviewsLoaded = false;
 let reviewsSearchQuery = '';
 let revenueLoaded = false;
 let revenueFilterMode = 'day';
+let allOrdersFull = [];
+let allOrdersFullLoaded = false;
+let performanceProduct = '';
 
 // ── All functions defined first ──
 
@@ -717,9 +738,11 @@ function setSection(s) {
   document.getElementById('queries-section').style.display = s === 'queries' ? 'block' : 'none';
   document.getElementById('reviews-section').style.display = s === 'reviews' ? 'block' : 'none';
   document.getElementById('revenue-section').style.display = s === 'revenue' ? 'block' : 'none';
+  document.getElementById('performance-section').style.display = s === 'performance' ? 'block' : 'none';
   if (s === 'queries' && !queriesLoaded) loadQueries();
   if (s === 'reviews' && !reviewsLoaded) loadReviews();
   if (s === 'revenue' && !revenueLoaded) { initRevenueDefaults(); loadRevenue(); }
+  if (s === 'performance') loadPerformance();
 }
 
 function queryDateStr(q) {
@@ -1059,6 +1082,134 @@ function renderRevenue(orders) {
   breakdown.innerHTML = `<div class="rev-breakdown-card"><div class="rev-breakdown-title">Revenue by day</div>${rowsHtml}</div>`;
 }
 
+async function ensureAllOrdersFull() {
+  if (allOrdersFullLoaded) return;
+  const snap = await getDocs(collection(db, 'all_orders'));
+  allOrdersFull = snap.docs.map(d => d.data());
+  allOrdersFullLoaded = true;
+}
+
+async function ensureAllReviewsLoaded() {
+  if (reviewsLoaded) return;
+  const snap = await getDocs(query(collection(db, 'reviews'), orderBy('date', 'desc')));
+  allReviews = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+  reviewsLoaded = true;
+}
+
+function populatePerformanceProductSelect() {
+  const select = document.getElementById('performance-product-select');
+  if (!select) return;
+  const catalog = window.PRODUCT_CATALOG_ALL || window.PRODUCT_CATALOG;
+  let names = [];
+  if (catalog) {
+    names = (Array.isArray(catalog) ? catalog : Object.values(catalog)).map(p => p.name).filter(Boolean);
+  }
+  if (!names.length) {
+    const set = new Set();
+    allOrdersFull.forEach(o => (o.items || []).forEach(i => i.name && set.add(i.name)));
+    allReviews.forEach(r => r.productName && set.add(r.productName));
+    names = Array.from(set);
+  }
+  names = Array.from(new Set(names)).sort();
+  const prevValue = select.value;
+  select.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if (names.includes(prevValue)) select.value = prevValue;
+  else if (names.length) select.value = names[0];
+  renderPerformance();
+}
+
+async function loadPerformance() {
+  const content = document.getElementById('performance-content');
+  content.innerHTML = '<div class="spinner"></div>';
+  try {
+    await Promise.all([ensureAllOrdersFull(), ensureAllReviewsLoaded()]);
+    populatePerformanceProductSelect();
+    if (!window.PRODUCT_CATALOG) {
+      document.addEventListener('productCatalogReady', populatePerformanceProductSelect, { once: true });
+    }
+    document.getElementById('performance-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+  } catch (e) {
+    content.innerHTML = `<div class="error-box">Error loading product performance: ${e.message}</div>`;
+  }
+}
+
+function monthLabel(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+}
+
+function renderPerfChart(title, months, valuesByMonth, countsByMonth, formatFn, barClass) {
+  const isRating = barClass === 'rating';
+  const maxVal = isRating ? 5 : Math.max(...months.map(m => valuesByMonth[m] || 0), 1);
+  const rows = months.map(m => {
+    if (isRating && !countsByMonth[m]) return '';
+    const val = isRating ? (valuesByMonth[m] / countsByMonth[m]) : (valuesByMonth[m] || 0);
+    const pct = Math.round((val / maxVal) * 100);
+    const displayVal = formatFn(val);
+    const countNote = isRating ? `<span class="rev-row-count">${countsByMonth[m]} review${countsByMonth[m] !== 1 ? 's' : ''}</span>` : '';
+    return `
+      <div class="rev-row">
+        <span class="rev-row-label">${monthLabel(m)}${countNote}</span>
+        <div class="rev-bar-wrap"><div class="rev-bar ${barClass}" style="width:${pct}%"></div></div>
+        <span class="rev-row-amt">${displayVal}</span>
+      </div>`;
+  }).filter(Boolean).join('');
+  if (!rows) return '';
+  return `<div class="perf-chart"><div class="perf-chart-title">${title}</div><div class="rev-breakdown-card">${rows}</div></div>`;
+}
+
+function renderPerformance() {
+  const select = document.getElementById('performance-product-select');
+  const product = select ? select.value : '';
+  performanceProduct = product;
+  const content = document.getElementById('performance-content');
+  if (!product) {
+    content.innerHTML = `<div class="empty-state"><h3>No products found</h3><p>Place some orders or wait for the catalog to load.</p></div>`;
+    return;
+  }
+
+  const revenueByMonth = {};
+  const unitsByMonth = {};
+  allOrdersFull.forEach(o => {
+    if (o.status === 'cancelled') return;
+    const ym = (o.date || '').slice(0, 7);
+    if (!ym) return;
+    (o.items || []).forEach(i => {
+      if (i.name !== product) return;
+      revenueByMonth[ym] = (revenueByMonth[ym] || 0) + (i.price || 0) * (i.qty || 0);
+      unitsByMonth[ym] = (unitsByMonth[ym] || 0) + (i.qty || 0);
+    });
+  });
+
+  const ratingSumByMonth = {};
+  const ratingCountByMonth = {};
+  allReviews.forEach(r => {
+    if (r.productName !== product) return;
+    const ym = reviewDateStr(r).slice(0, 7);
+    if (!ym) return;
+    ratingSumByMonth[ym] = (ratingSumByMonth[ym] || 0) + (r.rating || 0);
+    ratingCountByMonth[ym] = (ratingCountByMonth[ym] || 0) + 1;
+  });
+
+  const allMonths = Array.from(new Set([
+    ...Object.keys(revenueByMonth),
+    ...Object.keys(unitsByMonth),
+    ...Object.keys(ratingCountByMonth)
+  ])).sort().reverse();
+
+  if (!allMonths.length) {
+    content.innerHTML = `<div class="empty-state"><h3>No data for this product yet</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
+    return;
+  }
+
+  const html =
+    renderPerfChart('Monthly Revenue', allMonths, revenueByMonth, null, v => '₹' + v.toFixed(0), '') +
+    renderPerfChart('Units Ordered per Month', allMonths, unitsByMonth, null, v => v + ' unit' + (v !== 1 ? 's' : ''), 'units') +
+    renderPerfChart('Average Rating per Month', allMonths, ratingSumByMonth, ratingCountByMonth, v => '★ ' + v.toFixed(1), 'rating');
+
+  content.innerHTML = html || `<div class="empty-state"><h3>No data for this product yet</h3><p>Orders and reviews for "${escapeHtml(product)}" will appear here.</p></div>`;
+}
+
 async function saveResolution(docId) {
   const textarea = document.getElementById('resolution-' + docId);
   const resolution = textarea ? textarea.value.trim() : '';
@@ -1143,6 +1294,8 @@ window.adminClearReviewsSearch = clearReviewsSearch;
 window.adminSetReviewsFilterMode = setReviewsFilterMode;
 window.adminSetRevenueFilterMode = setRevenueFilterMode;
 window.adminLoadRevenue = loadRevenue;
+window.adminLoadPerformance = loadPerformance;
+window.adminRenderPerformance = renderPerformance;
 window.adminClearReviewsDate = clearReviewsDate;
 window.adminClearQueriesDate = clearQueriesDate;
 window.adminSetQueriesFilterMode = setQueriesFilterMode;
