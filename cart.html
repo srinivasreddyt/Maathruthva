@@ -599,6 +599,7 @@ if(_params.get('buynow')==='1'){
 let addresses = JSON.parse(localStorage.getItem('mtr_addresses') || '[]');
 let selectedAddr = 0;
 let promoDiscount = 0;
+let promoPercent = 0;
 let currentSection = 'cart';
 
 // ── Render cart ──
@@ -681,6 +682,7 @@ function saveCart(){
 function updateSummary(){
   const active = cart.filter(c=>c.qty>0);
   const subtotal = active.reduce((s,c)=>{const p=PRODUCTS.find(x=>x.id===c.id);return s+(p?p.price*c.qty:0);},0);
+  if(promoPercent>0) promoDiscount = Math.round(subtotal * promoPercent / 100);
   const shipping = subtotal>=999 ? 0 : 60;
   const total = subtotal - promoDiscount + shipping;
   document.getElementById('sum-subtotal').textContent = '₹'+subtotal;
@@ -693,11 +695,36 @@ function updateSummary(){
   else{ banner.style.display='none'; }
 }
 
-function applyPromo(){
+let appliedPromoCode = '';
+
+async function applyPromo(){
   const code = document.getElementById('promo-input').value.toUpperCase().trim();
-  if(code==='MAATHRUTHVA10'){ promoDiscount=50; showToast('Promo applied! ₹50 off'); updateSummary(); }
-  else if(code==='BABY15'){ promoDiscount=75; showToast('Promo applied! ₹75 off'); updateSummary(); }
-  else showToast('Invalid promo code');
+  if(!code){ showToast('Enter a promo code'); return; }
+  const btn = document.querySelector('.promo-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Checking...'; }
+  try{
+    const url = 'https://firestore.googleapis.com/v1/projects/maathruthva/databases/(default)/documents/promo_codes/' + encodeURIComponent(code);
+    const res = await fetch(url);
+    if(!res.ok){ promoDiscount=0; promoPercent=0; appliedPromoCode=''; showToast('Invalid promo code'); updateSummary(); return; }
+    const data = await res.json();
+    const f = data.fields || {};
+    const active = f.active && (f.active.booleanValue === true);
+    const percent = f.percent ? Number(f.percent.integerValue || f.percent.doubleValue || 0) : 0;
+    if(!active || !percent){ promoDiscount=0; promoPercent=0; appliedPromoCode=''; showToast('Invalid promo code'); updateSummary(); return; }
+    const active2 = cart.filter(c=>c.qty>0);
+    const subtotal = active2.reduce((s,c)=>{const p=PRODUCTS.find(x=>x.id===c.id);return s+(p?p.price*c.qty:0);},0);
+    promoPercent = percent;
+    promoDiscount = Math.round(subtotal * percent / 100);
+    appliedPromoCode = code;
+    showToast('Promo applied! ' + percent + '% off');
+    updateSummary();
+  }catch(e){
+    promoDiscount=0; promoPercent=0; appliedPromoCode='';
+    showToast('Invalid promo code');
+    updateSummary();
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Apply'; }
+  }
 }
 
 // ── Address ──
@@ -1018,7 +1045,7 @@ async function initPayment(){
         orderId: response.razorpay_order_id,
         items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
-        subtotal, discount: promoDiscount, shipping, total: totalPaise/100,
+        subtotal, discount: promoDiscount, promoCode: appliedPromoCode||'', shipping, total: totalPaise/100,
         userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
       };
       if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
