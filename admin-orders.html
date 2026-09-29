@@ -399,6 +399,23 @@
         <input type="number" class="year-input" id="reviews-year-picker" placeholder="YYYY" min="2020" max="2100">
       </div>
       <button class="refresh-btn" id="reviews-clear-date-btn" onclick="adminClearReviewsDate()" style="display:none;">✕ Show all dates</button>
+      <div class="date-picker-wrap">
+        <label>Product</label>
+        <select class="date-input" id="reviews-product-select" onchange="adminSetReviewsProductFilter(this.value)">
+          <option value="all">All Products</option>
+        </select>
+      </div>
+      <div class="date-picker-wrap">
+        <label>Rating</label>
+        <select class="date-input" id="reviews-rating-select" onchange="adminSetReviewsRatingFilter(this.value)">
+          <option value="all">All Ratings</option>
+          <option value="5">★★★★★ (5)</option>
+          <option value="4">★★★★ (4)</option>
+          <option value="3">★★★ (3)</option>
+          <option value="2">★★ (2)</option>
+          <option value="1">★ (1)</option>
+        </select>
+      </div>
       <button class="refresh-btn" onclick="adminLoadReviews()">↻ Refresh</button>
       <span id="reviews-last-updated" style="font-size:12px;color:#aaa;"></span>
       <div class="search-wrap">
@@ -506,6 +523,27 @@ let queriesDateFilter = '';
 let allReviews = [];
 let reviewsLoaded = false;
 let reviewsSearchQuery = '';
+let reviewsProductFilter = 'all';
+let reviewsRatingFilter = 'all';
+
+function setReviewsProductFilter(val) {
+  reviewsProductFilter = val;
+  renderReviews();
+}
+
+function setReviewsRatingFilter(val) {
+  reviewsRatingFilter = val;
+  renderReviews();
+}
+
+function populateReviewsProductSelect() {
+  const select = document.getElementById('reviews-product-select');
+  if (!select) return;
+  const names = Array.from(new Set(allReviews.map(r => r.productName).filter(Boolean))).sort();
+  const prevValue = select.value;
+  select.innerHTML = '<option value="all">All Products</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if (names.includes(prevValue)) select.value = prevValue;
+}
 let revenueLoaded = false;
 let revenueFilterMode = 'day';
 let allOrdersFull = [];
@@ -792,7 +830,7 @@ function setSection(s) {
   document.getElementById('revenue-section').style.display = s === 'revenue' ? 'block' : 'none';
   document.getElementById('performance-section').style.display = s === 'performance' ? 'block' : 'none';
   if (s === 'queries' && !queriesLoaded) loadQueries();
-  if (s === 'reviews' && !reviewsLoaded) loadReviews();
+  if (s === 'reviews') { if (!reviewsLoaded) loadReviews(); else { populateReviewsProductSelect(); renderReviews(); } }
   if (s === 'revenue' && !revenueLoaded) { initRevenueDefaults(); loadRevenue(); }
   if (s === 'performance') loadPerformance();
 }
@@ -815,6 +853,14 @@ function setQueriesFilterMode(mode) {
   const input = mode === 'day' ? document.getElementById('queries-date-picker')
               : mode === 'month' ? document.getElementById('queries-month-picker')
               : document.getElementById('queries-year-picker');
+  // Default to the current day/month/year the first time this mode is used,
+  // instead of leaving the native picker empty (looked like junk placeholder text).
+  if (!input.value) {
+    const istDate = new Date(Date.now() + 5.5 * 60 * 60000);
+    if (mode === 'day') input.value = istDate.toISOString().slice(0, 10);
+    else if (mode === 'month') input.value = istDate.toISOString().slice(0, 7);
+    else input.value = istDate.getFullYear();
+  }
   setQueriesDateFilter(input.value);
 }
 
@@ -951,6 +997,12 @@ function setReviewsFilterMode(mode) {
   const input = mode === 'day' ? document.getElementById('reviews-date-picker')
               : mode === 'month' ? document.getElementById('reviews-month-picker')
               : document.getElementById('reviews-year-picker');
+  if (!input.value) {
+    const istDate = new Date(Date.now() + 5.5 * 60 * 60000);
+    if (mode === 'day') input.value = istDate.toISOString().slice(0, 10);
+    else if (mode === 'month') input.value = istDate.toISOString().slice(0, 7);
+    else input.value = istDate.getFullYear();
+  }
   setReviewsDateFilter(input.value);
 }
 
@@ -978,6 +1030,7 @@ async function loadReviews() {
     allReviews = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
     reviewsLoaded = true;
     document.getElementById('reviews-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
+    populateReviewsProductSelect();
     renderReviews();
   } catch (e) {
     grid.innerHTML = `<div class="error-box">Error loading reviews: ${e.message}<br><small>Make sure Firestore security rules allow reading <code>reviews</code>.</small></div>`;
@@ -987,6 +1040,12 @@ async function loadReviews() {
 function renderReviews() {
   const grid = document.getElementById('reviews-grid');
   let filtered = reviewsDateFilter ? allReviews.filter(r => reviewDateStr(r).startsWith(reviewsDateFilter)) : allReviews;
+  if (reviewsProductFilter !== 'all') {
+    filtered = filtered.filter(r => r.productName === reviewsProductFilter);
+  }
+  if (reviewsRatingFilter !== 'all') {
+    filtered = filtered.filter(r => Number(r.rating) === Number(reviewsRatingFilter));
+  }
   if (reviewsSearchQuery) {
     const sq = reviewsSearchQuery.toLowerCase();
     filtered = filtered.filter(r => {
@@ -1527,6 +1586,8 @@ window.adminSetQueriesStatusFilter = setQueriesStatusFilter;
 window.adminClearQueriesSearch = clearQueriesSearch;
 window.adminLoadReviews = loadReviews;
 window.adminSearchReviews = searchReviews;
+window.adminSetReviewsProductFilter = setReviewsProductFilter;
+window.adminSetReviewsRatingFilter = setReviewsRatingFilter;
 window.adminClearReviewsSearch = clearReviewsSearch;
 window.adminSetReviewsFilterMode = setReviewsFilterMode;
 window.adminSetRevenueFilterMode = setRevenueFilterMode;
