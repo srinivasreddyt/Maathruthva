@@ -1186,11 +1186,15 @@ function populatePerformanceYearSelect() {
   if (!input) return;
   if (!input.value) {
     const years = new Set();
-    allOrdersFull.forEach(o => { if (o.date) years.add(o.date.slice(0, 4)); });
-    allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(d.slice(0, 4)); });
-    const sortedYears = Array.from(years).sort().reverse();
-    input.min = sortedYears.length ? sortedYears[sortedYears.length - 1] : 2020;
-    input.max = sortedYears.length ? sortedYears[0] : new Date().getFullYear();
+    allOrdersFull.forEach(o => { if (o.date) years.add(Number(o.date.slice(0, 4))); });
+    allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(Number(d.slice(0, 4))); });
+    const nowYear = new Date().getFullYear();
+    years.add(nowYear);
+    const sortedYears = Array.from(years).sort((a, b) => a - b);
+    // Pad the range so the spinner has somewhere to go even when all data
+    // falls in a single year (min===max would make the arrows do nothing).
+    input.min = sortedYears[0] - 2;
+    input.max = sortedYears[sortedYears.length - 1] + 2;
   }
   if (!input.dataset.bound) {
     input.dataset.bound = '1';
