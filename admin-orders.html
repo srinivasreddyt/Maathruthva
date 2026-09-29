@@ -191,6 +191,17 @@
       .stats{grid-template-columns:1fr 1fr;}
       .order-card-head{flex-direction:column;align-items:flex-start;}
     }
+    @media(max-width:768px){
+      html,body{overflow-x:hidden;}
+      .section-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin:0 -16px 24px;padding-left:16px;padding-right:16px;scrollbar-width:none;}
+      .section-tabs::-webkit-scrollbar{display:none;}
+      .section-tab{flex-shrink:0;white-space:nowrap;}
+      header{padding:0 16px;}
+      .brand-wordmark{max-width:110px;}
+      .filter-mode-toggle{flex-wrap:wrap;}
+      .date-picker-wrap{flex-wrap:wrap;width:100%;}
+      .date-input,.month-input,.year-input{width:100%;}
+    }
 
     /* ── Section tabs (Orders / Queries) ── */
     .section-tabs{display:flex;gap:8px;margin-bottom:24px;}
