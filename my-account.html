@@ -240,6 +240,11 @@
         if (d.phone) profile.phone = d.phone;
       }
     } catch(e) { console.error('Fetch profile error:', e); }
+    // Google sign-in without a phone number stores the email into the "phone" field as a fallback — move it to email instead
+    if (profile.phone && profile.phone.includes('@')) {
+      if (!profile.email) profile.email = profile.phone;
+      profile.phone = '';
+    }
 
     try {
       const addrSnap = await getDocs(collection(db, 'users', user.uid, 'addresses'));
