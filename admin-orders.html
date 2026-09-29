@@ -1263,17 +1263,19 @@ function populatePerformanceProductSelect() {
 function populatePerformanceYearSelect() {
   const input = document.getElementById('performance-year-input');
   if (!input) return;
-  if (!input.value) {
+  if (!input.dataset.bound) {
     const years = new Set();
     allOrdersFull.forEach(o => { if (o.date) years.add(Number(o.date.slice(0, 4))); });
     allReviews.forEach(r => { const d = reviewDateStr(r); if (d) years.add(Number(d.slice(0, 4))); });
-    const nowYear = new Date().getFullYear();
-    years.add(nowYear);
+    const istYear = new Date(Date.now() + 5.5 * 60 * 60000).getUTCFullYear();
+    years.add(istYear);
     const sortedYears = Array.from(years).sort((a, b) => a - b);
     // Pad the range so the spinner has somewhere to go even when all data
     // falls in a single year (min===max would make the arrows do nothing).
     input.min = sortedYears[0] - 2;
     input.max = 2050;
+    input.value = istYear;
+    document.getElementById('performance-clear-year-btn').style.display = 'inline-flex';
   }
   if (!input.dataset.bound) {
     input.dataset.bound = '1';
