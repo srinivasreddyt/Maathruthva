@@ -405,17 +405,6 @@
           <option value="all">All Products</option>
         </select>
       </div>
-      <div class="date-picker-wrap">
-        <label>Rating</label>
-        <select class="date-input" id="reviews-rating-select" onchange="adminSetReviewsRatingFilter(this.value)">
-          <option value="all">All Ratings</option>
-          <option value="5">★★★★★ (5)</option>
-          <option value="4">★★★★ (4)</option>
-          <option value="3">★★★ (3)</option>
-          <option value="2">★★ (2)</option>
-          <option value="1">★ (1)</option>
-        </select>
-      </div>
       <button class="refresh-btn" onclick="adminLoadReviews()">↻ Refresh</button>
       <span id="reviews-last-updated" style="font-size:12px;color:#aaa;"></span>
       <div class="search-wrap">
@@ -424,6 +413,7 @@
         <span class="search-clear" id="reviews-search-clear" onclick="adminClearReviewsSearch()">×</span>
       </div>
     </div>
+    <div class="filter-tabs" id="reviews-rating-tabs"></div>
     <div class="queries-grid" id="reviews-grid">
       <div class="spinner"></div>
     </div>
@@ -528,11 +518,14 @@ let reviewsRatingFilter = 'all';
 
 function setReviewsProductFilter(val) {
   reviewsProductFilter = val;
+  reviewsRatingFilter = 'all';
+  renderReviewsRatingTabs();
   renderReviews();
 }
 
 function setReviewsRatingFilter(val) {
   reviewsRatingFilter = val;
+  document.querySelectorAll('#reviews-rating-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.rating === val));
   renderReviews();
 }
 
@@ -543,6 +536,31 @@ function populateReviewsProductSelect() {
   const prevValue = select.value;
   select.innerHTML = '<option value="all">All Products</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   if (names.includes(prevValue)) select.value = prevValue;
+}
+
+function renderReviewsRatingTabs() {
+  const container = document.getElementById('reviews-rating-tabs');
+  if (!container) return;
+  // Counts reflect the current product + date filters, but not the rating
+  // filter itself (so switching tabs doesn't shrink the other counts).
+  const scoped = allReviews.filter(r => {
+    if (reviewsProductFilter !== 'all' && r.productName !== reviewsProductFilter) return false;
+    if (reviewsDateFilter && !reviewDateStr(r).startsWith(reviewsDateFilter)) return false;
+    return true;
+  });
+  const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  scoped.forEach(r => { const n = Number(r.rating); if (counts[n] !== undefined) counts[n]++; });
+  const tabs = [
+    { key: 'all', label: `All <span class="tab-count">${scoped.length}</span>` },
+    { key: '5', label: `5★ <span class="tab-count">${counts[5]}</span>` },
+    { key: '4', label: `4★ <span class="tab-count">${counts[4]}</span>` },
+    { key: '3', label: `3★ <span class="tab-count">${counts[3]}</span>` },
+    { key: '2', label: `2★ <span class="tab-count">${counts[2]}</span>` },
+    { key: '1', label: `1★ <span class="tab-count">${counts[1]}</span>` }
+  ];
+  container.innerHTML = tabs.map(t =>
+    `<button class="tab${reviewsRatingFilter === t.key ? ' active' : ''}" data-rating="${t.key}" onclick="adminSetReviewsRatingFilter('${t.key}')">${t.label}</button>`
+  ).join('');
 }
 let revenueLoaded = false;
 let revenueFilterMode = 'day';
@@ -830,7 +848,7 @@ function setSection(s) {
   document.getElementById('revenue-section').style.display = s === 'revenue' ? 'block' : 'none';
   document.getElementById('performance-section').style.display = s === 'performance' ? 'block' : 'none';
   if (s === 'queries' && !queriesLoaded) loadQueries();
-  if (s === 'reviews') { if (!reviewsLoaded) loadReviews(); else { populateReviewsProductSelect(); renderReviews(); } }
+  if (s === 'reviews') { if (!reviewsLoaded) loadReviews(); else { populateReviewsProductSelect(); renderReviewsRatingTabs(); renderReviews(); } }
   if (s === 'revenue' && !revenueLoaded) { initRevenueDefaults(); loadRevenue(); }
   if (s === 'performance') loadPerformance();
 }
@@ -1009,6 +1027,7 @@ function setReviewsFilterMode(mode) {
 function setReviewsDateFilter(val) {
   reviewsDateFilter = val;
   document.getElementById('reviews-clear-date-btn').style.display = val ? 'inline-flex' : 'none';
+  renderReviewsRatingTabs();
   renderReviews();
 }
 
@@ -1018,6 +1037,7 @@ function clearReviewsDate() {
   document.getElementById('reviews-month-picker').value = '';
   document.getElementById('reviews-year-picker').value = '';
   document.getElementById('reviews-clear-date-btn').style.display = 'none';
+  renderReviewsRatingTabs();
   renderReviews();
 }
 
@@ -1031,6 +1051,7 @@ async function loadReviews() {
     reviewsLoaded = true;
     document.getElementById('reviews-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
     populateReviewsProductSelect();
+    renderReviewsRatingTabs();
     renderReviews();
   } catch (e) {
     grid.innerHTML = `<div class="error-box">Error loading reviews: ${e.message}<br><small>Make sure Firestore security rules allow reading <code>reviews</code>.</small></div>`;
