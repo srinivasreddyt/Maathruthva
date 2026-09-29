@@ -55,8 +55,9 @@
 
     /* ── Receipt ── */
     .order-btn-group{display:flex;align-items:center;gap:10px;flex-shrink:0;}
-    .btn-receipt{background:none;border:1.5px solid #b5451b;color:#b5451b;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+    .btn-receipt{background:none;border:1.5px solid #b5451b;color:#b5451b;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;-webkit-tap-highlight-color:transparent;outline:none;}
     .btn-receipt:hover{background:#b5451b;color:#fff;}
+    .btn-receipt:focus,.btn-receipt:active{outline:none;background:none;}
     .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
     .receipt-overlay.open{display:flex;}
     .receipt-modal{background:#fff;border-radius:16px;max-width:400px;width:100%;padding:28px 26px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.2);}
