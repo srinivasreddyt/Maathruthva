@@ -53,6 +53,22 @@
     .item-meta{font-size:12px;color:#999;}
     .item-price{font-size:14px;color:#b5451b;font-weight:600;text-align:right;}
 
+    /* ── Receipt ── */
+    .order-actions{padding:0 20px 16px;display:flex;justify-content:flex-end;}
+    .btn-receipt{background:none;border:1.5px solid #b5451b;color:#b5451b;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+    .btn-receipt:hover{background:#b5451b;color:#fff;}
+    .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+    .receipt-overlay.open{display:flex;}
+    .receipt-modal{background:#fff;border-radius:16px;max-width:400px;width:100%;padding:28px 26px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.2);}
+    .receipt-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#999;cursor:pointer;line-height:1;}
+    .receipt-close:hover{color:#333;}
+    .receipt-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:#b5451b;margin-bottom:4px;}
+    .receipt-sub{font-size:12px;color:#999;margin-bottom:20px;}
+    .receipt-row{display:flex;justify-content:space-between;font-size:14px;color:#555;padding:7px 0;}
+    .receipt-row.total{border-top:1.5px solid #f0e6d3;margin-top:6px;padding-top:12px;font-size:16px;font-weight:600;color:#333;}
+    .receipt-row .neg{color:#2e7d32;}
+    .receipt-promo{font-size:11px;color:#b5451b;background:#ffeee7;padding:2px 8px;border-radius:8px;margin-left:6px;}
+
     /* ── Address ── */
     .order-address{padding:12px 20px 16px;background:#fafafa;border-top:1px solid #f0e6d3;display:flex;justify-content:space-between;align-items:center;gap:12px;}
     .address-block{flex:1;}
@@ -155,6 +171,15 @@
   <div id="orders-container"><div class="spinner"></div></div>
 </div>
 
+<div class="receipt-overlay" id="receipt-overlay" onclick="if(event.target===this)closeReceipt()">
+  <div class="receipt-modal">
+    <button class="receipt-close" onclick="closeReceipt()">✕</button>
+    <div class="receipt-title">Receipt</div>
+    <div class="receipt-sub" id="receipt-order-id"></div>
+    <div id="receipt-body"></div>
+  </div>
+</div>
+
 <script src="product-data.js"></script>
 <script type="module">
   import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -239,7 +264,10 @@
     return parts.join(', ');
   }
 
+  const ordersDataMap = {};
+
   function renderOrder(id, data) {
+    ordersDataMap[id] = data;
     const items = data.items || [];
     const itemsHtml = items.map(item => `
       <div class="order-item">
@@ -267,10 +295,38 @@
           <div class="order-total">₹${data.total}</div>
         </div>
         <div class="order-items">${itemsHtml}</div>
+        <div class="order-actions"><button class="btn-receipt" onclick="showReceipt('${id}')">🧾 Receipt</button></div>
         ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div>${isDelivered ? '' : `<button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button>`}</div>` : ''}
         ${reviewHtml}
       </div>`;
   }
+
+  window.showReceipt = function(id) {
+    const data = ordersDataMap[id];
+    if (!data) return;
+    const items = data.items || [];
+    const subtotal = data.subtotal != null ? data.subtotal : items.reduce((s, i) => s + i.price * i.qty, 0);
+    const discount = data.discount || 0;
+    const shipping = data.shipping != null ? data.shipping : 0;
+    const total = data.total != null ? data.total : (subtotal - discount + shipping);
+    const promoTag = data.promoCode ? `<span class="receipt-promo">${escapeHtml(data.promoCode)}</span>` : '';
+
+    const itemRows = items.map(item => `
+      <div class="receipt-row"><span>${escapeHtml(item.name)} × ${item.qty}</span><span>₹${(item.price * item.qty).toFixed(0)}</span></div>`).join('');
+
+    document.getElementById('receipt-order-id').textContent = `Order ID: ${data.orderId || id} · ${formatDate(data.createdAt)}`;
+    document.getElementById('receipt-body').innerHTML = `
+      ${itemRows}
+      <div class="receipt-row" style="border-top:1px solid #f0e6d3;margin-top:8px;padding-top:10px;"><span>Subtotal</span><span>₹${subtotal}</span></div>
+      <div class="receipt-row"><span>Discount${promoTag}</span><span class="neg">${discount > 0 ? '−₹' + discount : '₹0'}</span></div>
+      <div class="receipt-row"><span>Shipping</span><span>${shipping === 0 ? 'FREE' : '₹' + shipping}</span></div>
+      <div class="receipt-row total"><span>Total Paid</span><span>₹${total}</span></div>`;
+    document.getElementById('receipt-overlay').classList.add('open');
+  };
+
+  window.closeReceipt = function() {
+    document.getElementById('receipt-overlay').classList.remove('open');
+  };
 
   function renderReviewSection(id, data, productNames) {
     if (data.reviewSubmitted) {
