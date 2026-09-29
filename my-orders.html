@@ -54,8 +54,8 @@
     .item-price{font-size:14px;color:#b5451b;font-weight:600;text-align:right;}
 
     /* ── Receipt ── */
-    .order-actions{padding:0 20px 16px;display:flex;justify-content:flex-end;}
-    .btn-receipt{background:none;border:1.5px solid #b5451b;color:#b5451b;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+    .order-btn-group{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .btn-receipt{background:none;border:1.5px solid #b5451b;color:#b5451b;padding:7px 18px;border-radius:20px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
     .btn-receipt:hover{background:#b5451b;color:#fff;}
     .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
     .receipt-overlay.open{display:flex;}
@@ -120,6 +120,8 @@
     @media(max-width:480px){
       .order-header{flex-direction:column;align-items:flex-start;}
       .item-img,.item-img-placeholder{width:52px;height:52px;}
+      .btn-receipt{padding:9px;border-radius:50%;}
+      .btn-receipt .btn-label{display:none;}
     }
   
     .brand-lockup{display:flex;align-items:center;gap:10px;text-decoration:none;}
@@ -295,8 +297,13 @@
           <div class="order-total">₹${data.total}</div>
         </div>
         <div class="order-items">${itemsHtml}</div>
-        <div class="order-actions"><button class="btn-receipt" onclick="showReceipt('${id}')">🧾 Receipt</button></div>
-        ${addrText ? `<div class="order-address"><div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div>${isDelivered ? '' : `<button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button>`}</div>` : ''}
+        <div class="order-address">
+          ${addrText ? `<div class="address-block"><div class="address-label">Delivery Address</div><div class="address-text">${addrText}</div></div>` : '<div class="address-block"></div>'}
+          <div class="order-btn-group">
+            <button class="btn-receipt" onclick="showReceipt('${id}')"><span>🧾</span><span class="btn-label">Receipt</span></button>
+            ${isDelivered ? '' : `<button class="btn-track" onclick="alert('Tracking ID: ${(data.paymentId||id)}')">Track Order</button>`}
+          </div>
+        </div>
         ${reviewHtml}
       </div>`;
   }
