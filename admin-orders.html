@@ -357,6 +357,14 @@
         <input type="number" class="year-input" id="queries-year-picker" placeholder="YYYY" min="2020" max="2100">
       </div>
       <button class="refresh-btn" id="queries-clear-date-btn" onclick="adminClearQueriesDate()" style="display:none;">✕ Show all dates</button>
+      <div class="date-picker-wrap">
+        <label>Status</label>
+        <select class="date-input" id="queries-status-select" onchange="adminSetQueriesStatusFilter(this.value)">
+          <option value="all">All</option>
+          <option value="open">Unresolved</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
       <button class="refresh-btn" onclick="adminLoadQueries()">↻ Refresh</button>
       <span id="queries-last-updated" style="font-size:12px;color:#aaa;"></span>
       <div class="search-wrap">
@@ -841,10 +849,21 @@ async function loadQueries() {
 }
 
 let queriesSearchQuery = '';
+let queriesStatusFilter = 'all';
+
+function setQueriesStatusFilter(val) {
+  queriesStatusFilter = val;
+  renderQueries();
+}
 
 function renderQueries() {
   const grid = document.getElementById('queries-grid');
   let filtered = queriesDateFilter ? allQueries.filter(q => queryDateStr(q).startsWith(queriesDateFilter)) : allQueries;
+  if (queriesStatusFilter === 'resolved') {
+    filtered = filtered.filter(q => q.status === 'resolved');
+  } else if (queriesStatusFilter === 'open') {
+    filtered = filtered.filter(q => q.status !== 'resolved');
+  }
   if (queriesSearchQuery) {
     const sq = queriesSearchQuery.toLowerCase();
     filtered = filtered.filter(q => {
@@ -855,8 +874,9 @@ function renderQueries() {
     });
   }
   if (!filtered.length) {
-    const msg = queriesSearchQuery ? 'No queries match your search' : (queriesDateFilter ? 'No queries on this date' : 'No queries yet');
-    const sub = queriesSearchQuery ? 'Try a different message, email or phone number.' : (queriesDateFilter ? 'Try a different date.' : 'Messages submitted via the Contact Us form will appear here.');
+    const statusNote = queriesStatusFilter === 'resolved' ? 'resolved' : (queriesStatusFilter === 'open' ? 'unresolved' : '');
+    const msg = queriesSearchQuery ? 'No queries match your search' : (queriesDateFilter ? 'No queries on this date' : (statusNote ? `No ${statusNote} queries` : 'No queries yet'));
+    const sub = queriesSearchQuery ? 'Try a different message, email or phone number.' : (queriesDateFilter ? 'Try a different date.' : (statusNote ? 'Try a different status filter.' : 'Messages submitted via the Contact Us form will appear here.'));
     grid.innerHTML = `<div class="empty-state"><h3>${msg}</h3><p>${sub}</p></div>`;
     return;
   }
@@ -1503,6 +1523,7 @@ window.adminSetSection = setSection;
 window.adminLoadQueries = loadQueries;
 window.adminSaveResolution = saveResolution;
 window.adminSearchQueries = searchQueries;
+window.adminSetQueriesStatusFilter = setQueriesStatusFilter;
 window.adminClearQueriesSearch = clearQueriesSearch;
 window.adminLoadReviews = loadReviews;
 window.adminSearchReviews = searchReviews;
