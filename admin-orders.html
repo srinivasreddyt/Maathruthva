@@ -407,11 +407,11 @@
       </div>
       <button class="refresh-btn" onclick="adminLoadReviews()">↻ Refresh</button>
       <span id="reviews-last-updated" style="font-size:12px;color:#aaa;"></span>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" id="reviews-search" type="text" placeholder="Search by product, order ID or comment…" oninput="adminSearchReviews(this.value)">
-        <span class="search-clear" id="reviews-search-clear" onclick="adminClearReviewsSearch()">×</span>
-      </div>
+    </div>
+    <div class="search-wrap" style="margin:0 0 16px;">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="reviews-search" type="text" placeholder="Search by product, order ID or comment…" oninput="adminSearchReviews(this.value)" style="width:100%;">
+      <span class="search-clear" id="reviews-search-clear" onclick="adminClearReviewsSearch()">×</span>
     </div>
     <div class="filter-tabs" id="reviews-rating-tabs"></div>
     <div class="queries-grid" id="reviews-grid">
