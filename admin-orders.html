@@ -532,7 +532,12 @@ function setReviewsRatingFilter(val) {
 function populateReviewsProductSelect() {
   const select = document.getElementById('reviews-product-select');
   if (!select) return;
-  const names = Array.from(new Set(allReviews.map(r => r.productName).filter(Boolean))).sort();
+  const set = new Set(allReviews.map(r => r.productName).filter(Boolean));
+  const catalog = window.PRODUCT_CATALOG_ALL || window.PRODUCT_CATALOG;
+  if (catalog) {
+    (Array.isArray(catalog) ? catalog : Object.values(catalog)).forEach(p => p.name && set.add(p.name));
+  }
+  const names = Array.from(set).sort();
   const prevValue = select.value;
   select.innerHTML = '<option value="all">All Products</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
   if (names.includes(prevValue)) select.value = prevValue;
@@ -1051,6 +1056,9 @@ async function loadReviews() {
     reviewsLoaded = true;
     document.getElementById('reviews-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN');
     populateReviewsProductSelect();
+    if (!window.PRODUCT_CATALOG) {
+      document.addEventListener('productCatalogReady', populateReviewsProductSelect, { once: true });
+    }
     renderReviewsRatingTabs();
     renderReviews();
   } catch (e) {
