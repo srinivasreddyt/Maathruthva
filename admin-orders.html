@@ -1194,7 +1194,7 @@ function populatePerformanceYearSelect() {
     // Pad the range so the spinner has somewhere to go even when all data
     // falls in a single year (min===max would make the arrows do nothing).
     input.min = sortedYears[0] - 2;
-    input.max = sortedYears[sortedYears.length - 1] + 2;
+    input.max = 2050;
   }
   if (!input.dataset.bound) {
     input.dataset.bound = '1';
