@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed Lab Reports — Maathruthva</title>
+  <style>
+    body{font-family:sans-serif;max-width:500px;margin:60px auto;padding:0 20px;background:#f5f0e8;}
+    h2{color:#b5451b;margin-bottom:8px;}
+    p{color:#555;font-size:14px;margin-bottom:24px;}
+    button{padding:12px 28px;background:#b5451b;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;}
+    button:disabled{background:#ccc;cursor:not-allowed;}
+    pre{background:#fff;border:1px solid #e0d8cc;border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;margin-top:20px;}
+  </style>
+</head>
+<body>
+  <h2>Seed Lab Reports to Firestore</h2>
+  <p>Click the button to create sample documents in the <strong>lab_reports</strong> collection for testing.</p>
+  <button id="btn" onclick="seed()">Seed Lab Reports Now</button>
+  <pre id="log">Waiting...</pre>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const app = initializeApp({
+    apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
+    authDomain: "maathruthva.firebaseapp.com",
+    projectId: "maathruthva",
+  });
+  const db = getFirestore(app);
+
+  const REPORTS = [
+    { id: 'LR001', title: 'Heavy Metals & Pesticide Residue Test', productName: 'Natural Baby Food Mix', labName: 'Eurofins Analytical', date: '2026-08-15', fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+    { id: 'LR002', title: 'Microbiological Safety Report', productName: 'Natural Baby Growth Mix', labName: 'SGS India', date: '2026-07-02', fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+    { id: 'LR003', title: 'Nutritional Analysis Certificate', productName: 'Natural Baby Millet Mix', labName: 'Eurofins Analytical', date: '2026-06-10', fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' },
+  ];
+
+  window.seed = async function () {
+    const btn = document.getElementById('btn');
+    const log = document.getElementById('log');
+    btn.disabled = true;
+    log.textContent = 'Seeding lab reports...\n';
+    try {
+      for (const r of REPORTS) {
+        const { id, ...data } = r;
+        await setDoc(doc(db, 'lab_reports', id), data);
+        log.textContent += `✅ ${id} — ${r.title}\n`;
+      }
+      log.textContent += '\n✅ Done! You can close this page now.';
+    } catch (e) {
+      log.textContent += '\n❌ Error: ' + e.message;
+      btn.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
