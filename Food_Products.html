@@ -764,7 +764,8 @@
     return v || '🥣';
   }
   function logoutUser(){localStorage.removeItem('mtr_user');localStorage.removeItem('mtr_cart');localStorage.removeItem('mtr_addresses');location.href='index.html?action=logout';}
-  function greetHtml(name){return '<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;"><span class="nav-greeting" style="margin-bottom:2px;">Hi, '+name+'</span><span style="font-size:11px;color:#888;">Not you? <u style="cursor:pointer;color:#5a3e28;" onclick="logoutUser()">Logout</u></span></div>';}
+  function escName(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function greetHtml(name){return '<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;"><span class="nav-greeting" style="margin-bottom:2px;">Hi, '+escName(name)+'</span><span style="font-size:11px;color:#888;">Not you? <u style="cursor:pointer;color:#5a3e28;" onclick="logoutUser()">Logout</u></span></div>';}
   function updateNavBtn(){
     var nav = document.getElementById('nav-actions');
     if(!nav) return;
@@ -776,7 +777,7 @@
         var name=(JSON.parse(userStr).name||'User');
         if(window.innerWidth<=920){
           nav.innerHTML='<button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+count+')</button>';
-          if(mob){mob.style.display='flex';mob.style.alignItems='center';mob.style.gap='10px';mob.style.top=(document.querySelector('header').offsetHeight)+'px';mob.innerHTML='<span>Hi, '+name+'</span><u style="font-size:12px;color:#888;cursor:pointer;" onclick="logoutUser()">Logout</u>';}
+          if(mob){mob.style.display='flex';mob.style.alignItems='center';mob.style.gap='10px';mob.style.top=(document.querySelector('header').offsetHeight)+'px';mob.innerHTML='<span>Hi, '+escName(name)+'</span><u style="font-size:12px;color:#888;cursor:pointer;" onclick="logoutUser()">Logout</u>';}
           var ol=document.getElementById('mobile-my-orders-link');if(ol)ol.style.display='block';
         } else {
           nav.innerHTML=greetHtml(name)+'<a href="my-orders.html" style="font-size:13px;color:#b5451b;text-decoration:none;font-family:Jost,sans-serif;padding:7px 14px;border:1.5px solid #b5451b;border-radius:20px;">My Orders</a><button class="cart-pill" onclick="location.href=\'cart.html\'">Cart ('+count+')</button>';

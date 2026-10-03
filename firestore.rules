@@ -1,0 +1,109 @@
+rules_version = '2';
+
+// Publish from Firebase console > Firestore Database > Rules (or `firebase deploy --only firestore:rules`).
+// Replace REPLACE_WITH_ADMIN_EMAIL with the admin Firebase Auth account BEFORE publishing, and publish only after the
+// admin panel signs in with that account (otherwise the admin dashboard can no longer read orders).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email in ['REPLACE_WITH_ADMIN_EMAIL']
+        && request.auth.token.firebase.sign_in_provider in ['password', 'google.com'];
+    }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function optStr(v, max) { return v == null || str(v, max); }
+
+    function validOrder(d) {
+      return d.paymentId is string && d.paymentId.matches('^pay_[A-Za-z0-9]+$')
+        && d.orderId is string && d.orderId.matches('^order_[A-Za-z0-9]+$')
+        && d.items is list && d.items.size() >= 1 && d.items.size() <= 20
+        && d.total is number && d.total > 0 && d.total < 1000000
+        && d.status == 'confirmed';
+    }
+
+    // Public storefront data: readable by everyone, writable only by the admin (or via the console).
+    match /Food_Products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /lab_reports/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // Single-code lookups are public (checkout), but the list of codes cannot be enumerated.
+    match /promo_codes/{code} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Contact form: anyone may submit a well-formed message, only the admin can read or manage them.
+    match /customer_queries/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['name', 'mobile', 'email', 'uid', 'message', 'createdAt', 'status'])
+        && request.resource.data.keys().hasAll(['name', 'message', 'createdAt', 'status'])
+        && str(request.resource.data.name, 80)
+        && str(request.resource.data.message, 2000)
+        && optStr(request.resource.data.get('mobile', null), 20)
+        && optStr(request.resource.data.get('email', null), 120)
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && (request.resource.data.get('uid', null) == null || request.resource.data.uid == request.auth.uid);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Reviews: signed-in customers create their own; only the admin reads or moderates.
+    match /reviews/{id} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['orderId', 'productName', 'rating', 'comment', 'email', 'phone', 'uid', 'date'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && str(request.resource.data.productName, 300)
+        && str(request.resource.data.orderId, 128)
+        && optStr(request.resource.data.get('comment', null), 1000)
+        && optStr(request.resource.data.get('email', null), 120)
+        && optStr(request.resource.data.get('phone', null), 40)
+        && request.resource.data.date == request.time;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Admin order ledger. Orders are still written by the customer's browser after payment, so `create` can only
+    // check the shape; move this write to the backend (Admin SDK) to make it tamper-proof.
+    match /all_orders/{id} {
+      allow create: if validOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+    match /orders/{id} {
+      allow create: if validOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+    // Admin collection-group read across every `orders` collection (users/{uid}/orders included).
+    match /{path=**}/orders/{id} {
+      allow read: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && optStr(request.resource.data.get('name', null), 80)
+        && optStr(request.resource.data.get('phone', null), 120);
+
+      match /addresses/{aid} {
+        allow read, write: if isOwner(uid);
+      }
+      match /cartData/{cid} {
+        allow read, write: if isOwner(uid);
+      }
+      match /orders/{oid} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && validOrder(request.resource.data) && request.resource.data.userId == uid;
+        // Customers may only add their review to an order; the admin updates status.
+        allow update: if isAdmin()
+          || (isOwner(uid) && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['reviewSubmitted', 'reviewRating', 'reviewComment']));
+      }
+    }
+  }
+}

@@ -728,6 +728,10 @@ async function applyPromo(){
 }
 
 // ── Address ──
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function renderAddresses(){
   const list = document.getElementById('addr-list');
   const addBtn = document.getElementById('add-addr-btn');
@@ -743,10 +747,10 @@ function renderAddresses(){
   list.innerHTML = addresses.map((a,i)=>`
     <div class="addr-card${i===selectedAddr?' selected':''}" onclick="selectAddr(${i})">
       <div class="addr-radio"></div>
-      <div class="addr-name">${a.name} <span style="font-size:.72rem;background:var(--light-sage);color:var(--olive-txt);border-radius:20px;padding:2px 8px;margin-left:6px;">${a.type}</span></div>
-      <div class="addr-line">${a.addr1}, ${a.addr2}</div>
-      <div class="addr-line">${a.city}, ${a.state} — ${a.pin}</div>
-      <div class="addr-phone">📱 ${a.phone}</div>
+      <div class="addr-name">${escapeHtml(a.name)} <span style="font-size:.72rem;background:var(--light-sage);color:var(--olive-txt);border-radius:20px;padding:2px 8px;margin-left:6px;">${escapeHtml(a.type)}</span></div>
+      <div class="addr-line">${escapeHtml(a.addr1)}, ${escapeHtml(a.addr2)}</div>
+      <div class="addr-line">${escapeHtml(a.city)}, ${escapeHtml(a.state)} — ${escapeHtml(a.pin)}</div>
+      <div class="addr-phone">📱 ${escapeHtml(a.phone)}</div>
       <div class="addr-actions">
         <button class="addr-edit-btn" onclick="event.stopPropagation();editAddress(${i})">✏️ Edit</button>
         <button class="addr-del-btn" onclick="event.stopPropagation();deleteAddress(${i})">🗑️ Delete</button>
@@ -978,19 +982,32 @@ async function initPayment(){
   setPaymentButtonsLoading(true);
   showToast('Connecting to payment gateway…');
 
-  // Create order on backend (keeps Key Secret secure)
+  // Create order on backend. The server re-prices the cart from Firestore (prices, stock, promo) and
+  // returns the authoritative amount; `amount` is only sent for older backend versions and is ignored by the new one.
+  const buyer = JSON.parse(localStorage.getItem('mtr_user')||'{}');
   let rzpOrderId = null;
+  let serverOrder = null;
   try {
     const res = await fetch(`${BACKEND_URL}/api/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: totalPaise, currency: 'INR', receipt: `mtr_${Date.now()}` })
+      body: JSON.stringify({
+        amount: totalPaise,
+        currency: 'INR',
+        items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);return {productId:p.productId||(window.getProductId&&window.getProductId(p.name))||'', qty:c.qty};}),
+        promoCode: appliedPromoCode||'',
+        email: buyer.email||'',
+        phone: buyer.phone||'',
+        name: buyer.name||'',
+        address: [addr.addr1, addr.addr2, addr.city, addr.state, addr.pin].filter(Boolean).join(', ')
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Order creation failed');
     rzpOrderId = data.id;
+    serverOrder = data;
   } catch(e) {
-    showToast('Could not connect to payment server. Try again.');
+    showToast(e && e.message && !/fetch|network/i.test(e.message) ? e.message : 'Could not connect to payment server. Try again.');
     document.getElementById('step2').classList.remove('done');
     document.getElementById('line2').classList.remove('done');
     document.getElementById('step3').classList.remove('active');
@@ -998,9 +1015,14 @@ async function initPayment(){
     return;
   }
 
+  // Server-priced figures are authoritative (older backends don't return them, so fall back to the client maths).
+  const finalPaise = Number(serverOrder.amount) || totalPaise;
+  const bd = serverOrder.breakdown || {subtotal, discount: promoDiscount, shipping, total: finalPaise/100, promoCode: appliedPromoCode||''};
+  if(finalPaise !== totalPaise) showToast('Prices were updated. Your total is ₹'+(finalPaise/100));
+
   const options={
     key: 'rzp_test_T5A3ZUl87664TN',
-    amount: totalPaise,
+    amount: finalPaise,
     currency: 'INR',
     order_id: rzpOrderId,
     name: 'Maathruthva',
@@ -1039,13 +1061,14 @@ async function initPayment(){
       }
 
       const user=JSON.parse(localStorage.getItem('mtr_user')||'{}');
-      console.log('[Order] user email:', user.email, '| phone:', user.phone, '| uid:', user.uid);
       const orderData={
         paymentId: response.razorpay_payment_id,
         orderId: response.razorpay_order_id,
-        items: active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
+        items: serverOrder.items
+          ? serverOrder.items.map(i=>({productId:i.productId,name:i.name,qty:i.qty,price:i.price}))
+          : active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
-        subtotal, discount: promoDiscount, promoCode: appliedPromoCode||'', shipping, total: totalPaise/100,
+        subtotal: bd.subtotal, discount: bd.discount, promoCode: bd.promoCode||'', shipping: bd.shipping, total: finalPaise/100,
         userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
       };
       if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
@@ -1059,13 +1082,14 @@ async function initPayment(){
       if(user.phone){
         fetch(`${BACKEND_URL}/api/send-whatsapp`,{
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({phone: user.phone, paymentId: orderIdForNotify})
+          body: JSON.stringify({razorpay_order_id: response.razorpay_order_id, phone: user.phone, paymentId: orderIdForNotify})
         }).catch(()=>{});
       }
       if(user.email){
         fetch(`${BACKEND_URL}/api/send-email`,{
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
             email: user.email,
             name: user.name||'',
             paymentId: orderIdForNotify,
