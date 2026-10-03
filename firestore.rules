@@ -2,8 +2,8 @@ rules_version = '2';
 
 // Publish from Firebase console > Firestore Database > Rules (or `firebase deploy --only firestore:rules`).
 // Replace REPLACE_WITH_ADMIN_EMAIL with the admin Firebase Auth account in the console editor BEFORE publishing (do not commit
-// the real address; this file is served publicly), and publish only after the admin panel signs in with that account
-// (otherwise the admin dashboard can no longer read orders).
+// the real address; this file is served publicly). Publish only after you have created that admin user in Firebase
+// Authentication and signed in once on admin-orders.html, otherwise the dashboard cannot read orders.
 service cloud.firestore {
   match /databases/{database}/documents {
 

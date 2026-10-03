@@ -374,11 +374,8 @@ async function sendOTP(){
     [0,1,2,3,4,5].forEach(i=>{const b=document.getElementById('otp'+i);b.value='';b.classList.remove('filled','error');});
     document.getElementById('btn-verify').disabled=true;
     document.getElementById('otp-hint').textContent='';
-    // Show greeting if returning user
-    const greetEl=document.getElementById('otp-greeting');
-    const existingUser=window.fetchUserByPhone?await window.fetchUserByPhone('+91'+PHONE):null;
-    if(existingUser&&existingUser.name){greetEl.textContent='Hey, '+existingUser.name+'!';greetEl.style.display='block';}
-    else{greetEl.style.display='none';}
+    // No pre-login lookup of the user's name: it would reveal who owns a phone number to anyone who types it.
+    document.getElementById('otp-greeting').style.display='none';
     showScreen('screen-otp');
     showToast('OTP sent successfully!');
     setTimeout(()=>document.getElementById('otp0').focus(),350);
@@ -546,14 +543,6 @@ function animateDots(){let n=0;const el=document.getElementById('success-dots');
       const snap = await getDoc(doc(db, 'users', uid));
       return snap.exists() ? snap.data() : null;
     } catch(e) { console.error('Fetch user error:', e); return null; }
-  };
-
-  window.fetchUserByPhone = async function(phone) {
-    try {
-      const q = query(collection(db, 'users'), where('phone', '==', phone));
-      const snap = await getDocs(q);
-      return snap.empty ? null : snap.docs[0].data();
-    } catch(e) { console.error('Fetch user by phone error:', e); return null; }
   };
 
   window.mergeCartOnLogin = async function(uid) {

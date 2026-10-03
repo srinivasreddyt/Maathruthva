@@ -4,13 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Orders Dashboard | Maathruthva</title>
+  <meta name="robots" content="noindex,nofollow">
+  <script>if (window.top !== window.self) { window.top.location = window.self.location; }</script>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Jost',sans-serif;background:#f5f0e8;color:#333;min-height:100vh;}
 
     /* ── PIN Gate ── */
-    #pin-gate{position:fixed;inset:0;background:#f5f0e8;display:flex;align-items:center;justify-content:center;z-index:999;}
+    #login-gate{position:fixed;inset:0;background:#f5f0e8;display:flex;align-items:center;justify-content:center;z-index:999;}
     .pin-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:380px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.1);}
     .pin-logo{font-family:'Cormorant Garamond',serif;font-size:28px;color:#b5451b;font-weight:600;margin-bottom:4px;}
     .pin-sub{font-size:13px;color:#888;margin-bottom:28px;}
@@ -20,6 +22,7 @@
     .pin-btn{width:100%;padding:13px;background:#b5451b;color:#fff;border:none;border-radius:10px;font-family:'Jost',sans-serif;font-size:15px;font-weight:500;cursor:pointer;}
     .pin-btn:hover{background:#9a3a17;}
     .pin-error{color:#c0392b;font-size:13px;margin-top:10px;display:none;}
+    .login-input{letter-spacing:normal;font-size:15px;text-align:left;margin-bottom:12px;}
 
     /* ── Header ── */
     header{background:#fff;border-bottom:1px solid #e8dfd0;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
@@ -245,15 +248,17 @@
 </head>
 <body>
 
-<!-- PIN Gate -->
-<div id="pin-gate">
+<!-- Admin sign-in -->
+<div id="login-gate">
   <div class="pin-box">
     <div class="pin-logo">Maathruthva</div>
     <div class="pin-sub">Admin Orders Dashboard</div>
-    <div class="pin-label">Enter Admin PIN</div>
-    <input class="pin-input" id="pin-input" type="password" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter')checkPin()">
-    <button class="pin-btn" onclick="checkPin()">Access Dashboard</button>
-    <div class="pin-error" id="pin-error">Incorrect PIN. Try again.</div>
+    <div class="pin-label">Admin email</div>
+    <input class="pin-input login-input" id="admin-email" type="email" autocomplete="username" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')document.getElementById('admin-password').focus()">
+    <div class="pin-label">Password</div>
+    <input class="pin-input login-input" id="admin-password" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')adminSignIn()">
+    <button class="pin-btn" id="admin-signin-btn" onclick="adminSignIn()">Sign in</button>
+    <div class="pin-error" id="pin-error">Incorrect email or password.</div>
   </div>
 </div>
 
@@ -266,7 +271,7 @@
     </a>
     <span class="admin-badge">Admin</span>
   </div>
-  <button class="logout-btn" onclick="lockAdmin()">Lock</button>
+  <button class="logout-btn" onclick="lockAdmin()">Sign out</button>
 </header>
 
 <!-- Main -->
@@ -500,6 +505,7 @@
 /* v3 */
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -510,10 +516,10 @@ const firebaseConfig = {
   appId: "1:772318181453:web:e736b87f53c264b8cf8404"
 };
 
-const ADMIN_PIN = '2611';
 const BACKEND_URL = 'https://maathruthva-backend.vercel.app';
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 let allOrders = [];
 let currentFilter = 'all';
@@ -587,7 +593,7 @@ let performanceProduct = '';
 // ── All functions defined first ──
 
 function showAdminUI() {
-  document.getElementById('pin-gate').style.display = 'none';
+  document.getElementById('login-gate').style.display = 'none';
   document.getElementById('admin-header').style.display = 'flex';
   document.getElementById('admin-main').style.display = 'block';
 }
@@ -1591,16 +1597,19 @@ async function updateStatus(docId, newStatus) {
       catch (e2) { console.error('Personal order copy sync failed:', e2); }
     }
 
+    const notifyHeaders = { 'Content-Type': 'application/json' };
+    try { notifyHeaders.Authorization = 'Bearer ' + await auth.currentUser.getIdToken(); } catch (e) { /* backend rejects if admin auth is enforced */ }
+
     if (userEmail && (newStatus === 'dispatched' || newStatus === 'delivered')) {
       fetch(`${BACKEND_URL}/api/send-status-email`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: notifyHeaders,
         body: JSON.stringify({ email: userEmail, name: userName || '', orderId: orderIdForEmail, status: newStatus })
       }).catch(err => console.error('Status email failed:', err));
     }
 
     if (userPhone && (newStatus === 'dispatched' || newStatus === 'delivered')) {
       fetch(`${BACKEND_URL}/api/send-status-whatsapp`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: notifyHeaders,
         body: JSON.stringify({ phone: userPhone, orderId: orderIdForEmail, status: newStatus })
       }).catch(err => console.error('Status WhatsApp failed:', err));
     }
@@ -1613,19 +1622,32 @@ async function updateStatus(docId, newStatus) {
 }
 
 // ── Expose to global scope for onclick handlers ──
-window.checkPin = function() {
-  const val = document.getElementById('pin-input').value;
-  if (val === ADMIN_PIN) {
-    sessionStorage.setItem('mtr_admin', '1');
-    showAdminUI();
-    initDashboard();
-  } else {
-    document.getElementById('pin-error').style.display = 'block';
-    document.getElementById('pin-input').value = '';
-    document.getElementById('pin-input').focus();
+window.adminSignIn = async function() {
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value;
+  const err = document.getElementById('pin-error');
+  const btn = document.getElementById('admin-signin-btn');
+  err.style.display = 'none';
+  if (!email || !password) { err.textContent = 'Enter your admin email and password.'; err.style.display = 'block'; return; }
+  btn.disabled = true;
+  try {
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    const msgs = {
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/operation-not-allowed': 'Email/password sign-in is not enabled in Firebase Authentication yet.',
+      'auth/network-request-failed': 'Network error. Check your connection and try again.'
+    };
+    err.textContent = (e && msgs[e.code]) || 'Incorrect email or password.';
+    err.style.display = 'block';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('admin-password').focus();
+  } finally {
+    btn.disabled = false;
   }
 };
-window.lockAdmin = function() { sessionStorage.removeItem('mtr_admin'); location.reload(); };
+window.lockAdmin = function() { signOut(auth).finally(() => location.reload()); };
 window.adminLoadOrders = loadOrders;
 window.adminSetOrdersFilterMode = setOrdersFilterMode;
 window.adminSetFilter = setFilter;
@@ -1659,11 +1681,19 @@ document.getElementById('reviews-date-picker').addEventListener('change', (e) =>
 document.getElementById('reviews-month-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
 document.getElementById('reviews-year-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
 
-// ── Auto-unlock if session still active ──
-if (sessionStorage.getItem('mtr_admin') === '1') {
-  showAdminUI();
-  initDashboard();
-}
+// ── Show the dashboard only for an email/password or Google session (customers sign in by phone) ──
+let dashboardStarted = false;
+onAuthStateChanged(auth, (user) => {
+  const isStaffLogin = !!user && !!user.email && user.providerData.some(p => p.providerId === 'password' || p.providerId === 'google.com');
+  if (isStaffLogin) {
+    showAdminUI();
+    if (!dashboardStarted) { dashboardStarted = true; initDashboard(); }
+  } else {
+    document.getElementById('login-gate').style.display = 'flex';
+    document.getElementById('admin-header').style.display = 'none';
+    document.getElementById('admin-main').style.display = 'none';
+  }
+});
 </script>
 
 <script>
