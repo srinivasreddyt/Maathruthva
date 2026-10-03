@@ -1085,7 +1085,7 @@ async function initPayment(){
           : active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
         subtotal: bd.subtotal, discount: bd.discount, promoCode: bd.promoCode||'', shipping: bd.shipping, total: finalPaise/100,
-        userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
+        userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed', paymentStatus:'completed'
       };
       // The backend already saved this order when it confirmed the payment; only fall back to saving from here if it could not.
       if(window.saveOrderToFirestore && !serverSaved) window.saveOrderToFirestore(orderData);

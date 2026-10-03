@@ -94,6 +94,9 @@
     .pay-check.ok{background:#e8f5e9;color:#2e7d32;}
     .pay-check.warn{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;}
     .pay-check.neutral{background:#f1ece3;color:#8a7a50;}
+    .pay-status{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600;white-space:nowrap;}
+    .pay-status.completed{background:#e3f2fd;color:#0d47a1;}
+    .pay-status.rejected{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;}
     .status-confirmed{background:#fff3cd;color:#856404;}
     .status-dispatched{background:#d4edda;color:#155724;}
     .status-delivered{background:#e8d5f5;color:#4a235a;}
@@ -669,8 +672,9 @@ async function loadOrders() {
 }
 
 function updateStats() {
-  const total = allOrders.length;
-  const revenue = allOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const counted = allOrders.filter(o => o.status !== 'cancelled');   // rejected payments are listed but are not orders or revenue
+  const total = counted.length;
+  const revenue = counted.reduce((s, o) => s + (o.total || 0), 0);
   const pending = allOrders.filter(o => o.status === 'confirmed').length;
   const dispatched = allOrders.filter(o => o.status === 'dispatched').length;
   const delivered = allOrders.filter(o => o.status === 'delivered').length;
@@ -680,7 +684,7 @@ function updateStats() {
   document.getElementById('stat-pending').textContent = pending + dispatched;
   document.getElementById('stat-delivered').textContent = delivered;
 
-  document.getElementById('cnt-all').textContent = total;
+  document.getElementById('cnt-all').textContent = allOrders.length;
   document.getElementById('cnt-confirmed').textContent = pending;
   document.getElementById('cnt-dispatched').textContent = dispatched;
   document.getElementById('cnt-delivered').textContent = delivered;
@@ -881,6 +885,16 @@ function statusLabel(s) {
   return { confirmed: 'Pending', dispatched: 'Dispatched', delivered: 'Delivered', cancelled: 'Cancelled' }[s] || s;
 }
 
+// paymentStatus is stored by the server: "completed" once Razorpay's payment was verified, "rejected" when something was wrong.
+function paymentStatusPill(o) {
+  if (o.paymentStatus === 'completed') return '<span class="pay-status completed" title="Payment verified by the server">Payment completed</span>';
+  if (o.paymentStatus === 'rejected') {
+    const why = { signature_mismatch: 'Signature check failed', amount_mismatch: 'Amount mismatch', payment_failed: 'Payment failed' }[o.paymentRejectReason] || 'Rejected';
+    return `<span class="pay-status rejected" title="${escapeHtml(o.paymentRejectDetail || '')}">Payment rejected · ${escapeHtml(why)}</span>`;
+  }
+  return '';
+}
+
 function renderOrderCard(o) {
   const addr = o.address || {};
   const addrLine = [addr.addr1 || addr.line1, addr.addr2 || addr.line2, addr.city, addr.state, addr.pin || addr.pincode].filter(Boolean).join(', ');
@@ -922,7 +936,8 @@ function renderOrderCard(o) {
           <span class="order-time">${escapeHtml(time)}</span>
           <span class="order-pid">${escapeHtml(pid)}</span>
           ${statusBadge}
-          ${sid && /^order_[A-Za-z0-9]{6,40}$/.test(String(o.orderId || '')) ? `<span class="pay-check" id="paycheck-${sid}"></span>` : ''}
+          ${paymentStatusPill(o)}
+          ${sid && o.paymentStatus !== 'rejected' && /^order_[A-Za-z0-9]{6,40}$/.test(String(o.orderId || '')) ? `<span class="pay-check" id="paycheck-${sid}"></span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span class="order-total">₹${money(o.total)}</span>
