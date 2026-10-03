@@ -460,6 +460,14 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
+  // ID token of the signed-in customer; the backend uses it to attach the order to the right account.
+  window.getAuthToken = async function() {
+    try {
+      await auth.authStateReady();
+      return auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    } catch (e) { return ''; }
+  };
+
   // If Firebase session expires, clear localStorage and redirect to login
   onAuthStateChanged(auth, (firebaseUser) => {
     const stored = JSON.parse(localStorage.getItem('mtr_user') || 'null');
@@ -483,7 +491,9 @@
       let ref, path;
       if(uid && uid !== 'guest'){
         path = `users/${uid}/orders`;
-        ref = await addDoc(collection(db, 'users', uid, 'orders'), enriched);
+        // Same id the backend uses, so a fallback save can never create a second copy of an order the server already saved.
+        if (orderData.orderId) { ref = doc(db, 'users', uid, 'orders', orderData.orderId); await setDoc(ref, enriched); }
+        else ref = await addDoc(collection(db, 'users', uid, 'orders'), enriched);
       } else {
         path = `orders`;
         ref = await addDoc(collection(db, 'orders'), enriched);
@@ -508,7 +518,7 @@
       }
     } catch(e) {
       console.error('Firestore save order error:', e.code, e.message);
-      if(window.showToast) window.showToast('Firestore error: ' + e.code);
+      if(window.showToast && e.code !== 'permission-denied') window.showToast('Firestore error: ' + e.code);
     }
   };
 
@@ -988,9 +998,12 @@ async function initPayment(){
   let rzpOrderId = null;
   let serverOrder = null;
   try {
+    const authHeaders = { 'Content-Type': 'application/json' };
+    const idToken = window.getAuthToken ? await window.getAuthToken() : '';
+    if (idToken) authHeaders.Authorization = 'Bearer ' + idToken;
     const res = await fetch(`${BACKEND_URL}/api/create-order`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify({
         amount: totalPaise,
         currency: 'INR',
@@ -999,7 +1012,8 @@ async function initPayment(){
         email: buyer.email||'',
         phone: buyer.phone||'',
         name: buyer.name||'',
-        address: [addr.addr1, addr.addr2, addr.city, addr.state, addr.pin].filter(Boolean).join(', ')
+        address: [addr.addr1, addr.addr2, addr.city, addr.state, addr.pin].filter(Boolean).join(', '),
+        addressDetails: { name: addr.name, phone: addr.phone, pin: addr.pin, addr1: addr.addr1, addr2: addr.addr2, city: addr.city, state: addr.state, type: addr.type }
       })
     });
     const data = await res.json();
@@ -1044,6 +1058,7 @@ async function initPayment(){
       document.getElementById('success-modal').classList.add('open');
 
       // Verify payment signature on backend before confirming order
+      let serverSaved = false;
       try {
         const vRes = await fetch(`${BACKEND_URL}/api/verify-payment`, {
           method: 'POST',
@@ -1056,6 +1071,7 @@ async function initPayment(){
         });
         const vData = await vRes.json();
         if (!vData.verified) { showToast('Payment verification failed. Contact support.'); return; }
+        serverSaved = vData.orderSaved === true;
       } catch(e) {
         showToast('Could not verify payment. Contact support.'); return;
       }
@@ -1071,7 +1087,8 @@ async function initPayment(){
         subtotal: bd.subtotal, discount: bd.discount, promoCode: bd.promoCode||'', shipping: bd.shipping, total: finalPaise/100,
         userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed'
       };
-      if(window.saveOrderToFirestore) window.saveOrderToFirestore(orderData);
+      // The backend already saved this order when it confirmed the payment; only fall back to saving from here if it could not.
+      if(window.saveOrderToFirestore && !serverSaved) window.saveOrderToFirestore(orderData);
       document.getElementById('order-id-display').textContent='Order ID: '+(response.razorpay_order_id || response.razorpay_payment_id);
       // Switch from loading to success state
       document.getElementById('modal-loading-state').style.display = 'none';
