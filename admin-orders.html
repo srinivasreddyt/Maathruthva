@@ -258,11 +258,8 @@
   <div class="pin-box">
     <div class="pin-logo">Maathruthva</div>
     <div class="pin-sub">Admin Orders Dashboard</div>
-    <div class="pin-label">Admin email</div>
-    <input class="pin-input login-input" id="admin-email" type="email" autocomplete="username" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')document.getElementById('admin-password').focus()">
-    <div class="pin-label">Password</div>
-    <input class="pin-input login-input" id="admin-password" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')adminSignIn()">
-    <button class="pin-btn" id="admin-signin-btn" onclick="adminSignIn()">Sign in</button>
+    <div class="pin-label">Sign in with the admin Google account</div>
+    <button class="pin-btn" id="admin-signin-btn" onclick="adminSignIn()">Sign in with Google</button>
     <div class="pin-error" id="pin-error">Incorrect email or password.</div>
   </div>
 </div>
@@ -509,8 +506,8 @@
 <script type="module">
 /* v3 */
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, collectionGroup, query, where, getDocs, getDoc, doc, updateDoc, orderBy, setDoc, serverTimestamp, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, setPersistence, browserSessionPersistence, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBWhNCWiT-us4L_J5ihcCiniisX1Jy9SoU",
@@ -1707,26 +1704,24 @@ async function updateStatus(docId, newStatus) {
 
 // ── Expose to global scope for onclick handlers ──
 window.adminSignIn = async function() {
-  const email = document.getElementById('admin-email').value.trim();
-  const password = document.getElementById('admin-password').value;
   const err = document.getElementById('pin-error');
   const btn = document.getElementById('admin-signin-btn');
   err.style.display = 'none';
-  if (!email || !password) { err.textContent = 'Enter your admin email and password.'; err.style.display = 'block'; return; }
   btn.disabled = true;
   try {
     await setPersistence(auth, browserSessionPersistence);
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e) {
     const msgs = {
-      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
-      'auth/operation-not-allowed': 'Email/password sign-in is not enabled in Firebase Authentication yet.',
-      'auth/network-request-failed': 'Network error. Check your connection and try again.'
+      'auth/popup-blocked': 'Your browser blocked the sign-in popup. Allow popups for this site and try again.',
+      'auth/unauthorized-domain': 'This domain is not authorized for sign-in in Firebase Authentication settings.',
+      'auth/network-request-failed': 'Network error. Check your connection and try again.',
+      'auth/operation-not-allowed': 'Google sign-in is not enabled in Firebase Authentication.'
     };
-    err.textContent = (e && msgs[e.code]) || 'Incorrect email or password.';
-    err.style.display = 'block';
-    document.getElementById('admin-password').value = '';
-    document.getElementById('admin-password').focus();
+    if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      err.textContent = msgs[e.code] || 'Sign-in failed. Please try again.';
+      err.style.display = 'block';
+    }
   } finally {
     btn.disabled = false;
   }
@@ -1765,18 +1760,33 @@ document.getElementById('reviews-date-picker').addEventListener('change', (e) =>
 document.getElementById('reviews-month-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
 document.getElementById('reviews-year-picker').addEventListener('change', (e) => setReviewsDateFilter(e.target.value));
 
-// ── Show the dashboard only for an email/password or Google session (customers sign in by phone) ──
+// ── The dashboard is shown only to an admin: a Google/password session that Firestore lets read the order ledger ──
 let dashboardStarted = false;
-onAuthStateChanged(auth, (user) => {
-  const isStaffLogin = !!user && !!user.email && user.providerData.some(p => p.providerId === 'password' || p.providerId === 'google.com');
-  if (isStaffLogin) {
-    showAdminUI();
-    if (!dashboardStarted) { dashboardStarted = true; initDashboard(); }
-  } else {
-    document.getElementById('login-gate').style.display = 'flex';
-    document.getElementById('admin-header').style.display = 'none';
-    document.getElementById('admin-main').style.display = 'none';
+function showLoginGate(message) {
+  document.getElementById('login-gate').style.display = 'flex';
+  document.getElementById('admin-header').style.display = 'none';
+  document.getElementById('admin-main').style.display = 'none';
+  if (message) {
+    const err = document.getElementById('pin-error');
+    err.textContent = message;
+    err.style.display = 'block';
   }
+}
+onAuthStateChanged(auth, async (user) => {
+  const isStaffLogin = !!user && !!user.email && user.providerData.some(p => p.providerId === 'google.com' || p.providerId === 'password');
+  if (!isStaffLogin) { showLoginGate(); return; }
+  try {
+    // Once the Firestore rules are published this is denied for every account except the admin's.
+    await getDocs(query(collection(db, 'all_orders'), limit(1)));
+  } catch (e) {
+    if (e && e.code === 'permission-denied') {
+      showLoginGate('This Google account is not authorized for the admin panel.');
+      signOut(auth);
+      return;
+    }
+  }
+  showAdminUI();
+  if (!dashboardStarted) { dashboardStarted = true; initDashboard(); }
 });
 </script>
 
