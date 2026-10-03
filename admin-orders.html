@@ -89,6 +89,11 @@
 
     /* Status badge */
     .status-badge{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500;white-space:nowrap;}
+    .pay-check{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:500;white-space:nowrap;}
+    .pay-check:empty{display:none;}
+    .pay-check.ok{background:#e8f5e9;color:#2e7d32;}
+    .pay-check.warn{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;}
+    .pay-check.neutral{background:#f1ece3;color:#8a7a50;}
     .status-confirmed{background:#fff3cd;color:#856404;}
     .status-dispatched{background:#d4edda;color:#155724;}
     .status-delivered{background:#e8d5f5;color:#4a235a;}
@@ -724,6 +729,84 @@ function renderOrders() {
     return;
   }
   grid.innerHTML = filtered.map(o => renderOrderCard(o)).join('');
+  runPayChecks(filtered);
+}
+
+// ── Payment cross-check ──
+// Orders are saved by the customer's browser after paying, so the saved total/items are not trustworthy on their own.
+// The backend (admin-only) asks Razorpay what was actually collected and we flag any disagreement.
+const payCheckCache = new Map();   // razorpay order id -> result from /api/check-orders
+const payCheckFailed = new Map();  // razorpay order id -> time of last failed attempt
+const payCheckInFlight = new Set();
+const PAY_RETRY_MS = 60000;
+
+function evaluatePayCheck(o, r) {
+  const rupees = p => '₹' + (p / 100);
+  if (!r || r.status === 'error') return { cls: 'neutral', text: 'Payment check unavailable', tip: 'Could not reach the payment check. Reload to retry.' };
+  if (r.status === 'notfound') return { cls: 'warn', text: '⚠ No such Razorpay order', tip: 'Razorpay has no order with this id. Do not ship.' };
+  if (r.status === 'unpaid') return { cls: 'warn', text: '⚠ No successful payment found', tip: 'Razorpay shows no captured or authorized payment for this order. Do not ship.' };
+
+  const savedPaise = Math.round((Number(o.total) || 0) * 100);
+  if (r.paidPaise !== savedPaise) {
+    return { cls: 'warn', text: `⚠ Paid ${rupees(r.paidPaise)} but order says ${rupees(savedPaise)}`, tip: 'The saved total does not match what Razorpay collected. Verify before shipping.' };
+  }
+  const savedItems = Array.isArray(o.items) ? o.items : [];
+  if (r.items && savedItems.length && savedItems.every(i => i.productId)) {
+    const key = list => list.map(i => `${i.productId}x${Number(i.qty)}@${Number(i.price)}`).sort().join(',');
+    if (key(r.items) !== key(savedItems)) {
+      return { cls: 'warn', text: '⚠ Items differ from what was charged', tip: 'The saved items do not match the cart that was priced at checkout. Verify before shipping.' };
+    }
+  }
+  const authOnly = r.status === 'authorized';
+  return { cls: 'ok', text: authOnly ? `✓ Authorized ${rupees(r.paidPaise)} (not captured)` : `✓ Verified ${rupees(r.paidPaise)}`, tip: 'Saved total matches the payment collected by Razorpay.' };
+}
+
+function paintPayBadge(o) {
+  const sid = safeId(o._id);
+  const el = sid && document.getElementById('paycheck-' + sid);
+  if (!el) return;
+  const r = payCheckCache.get(o.orderId) || (payCheckFailed.has(o.orderId) ? { status: 'error' } : null);
+  if (!r) return;
+  const v = evaluatePayCheck(o, r);
+  el.className = 'pay-check ' + v.cls;
+  el.textContent = v.text;
+  el.title = v.tip;
+}
+
+async function runPayChecks(list) {
+  const targets = list.filter(o => /^order_[A-Za-z0-9]{6,40}$/.test(String(o.orderId || '')));
+  targets.forEach(paintPayBadge);
+
+  const now = Date.now();
+  const need = [...new Set(targets.map(o => o.orderId))].filter(id =>
+    !payCheckCache.has(id) && !payCheckInFlight.has(id) && !(payCheckFailed.has(id) && now - payCheckFailed.get(id) < PAY_RETRY_MS));
+  if (!need.length) return;
+
+  let token = '';
+  try { token = await auth.currentUser.getIdToken(); } catch (e) { return; }
+
+  for (let i = 0; i < need.length; i += 40) {
+    const chunk = need.slice(i, i + 40);
+    chunk.forEach(id => payCheckInFlight.add(id));
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/check-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ orderIds: chunk })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment check failed');
+      data.results.forEach(r => {
+        if (r.status === 'error') payCheckFailed.set(r.orderId, Date.now());
+        else payCheckCache.set(r.orderId, r);
+      });
+    } catch (e) {
+      chunk.forEach(id => payCheckFailed.set(id, Date.now()));
+    } finally {
+      chunk.forEach(id => payCheckInFlight.delete(id));
+    }
+  }
+  targets.forEach(paintPayBadge);
 }
 
 let searchDebounceTimer = null;
@@ -842,6 +925,7 @@ function renderOrderCard(o) {
           <span class="order-time">${escapeHtml(time)}</span>
           <span class="order-pid">${escapeHtml(pid)}</span>
           ${statusBadge}
+          ${sid && /^order_[A-Za-z0-9]{6,40}$/.test(String(o.orderId || '')) ? `<span class="pay-check" id="paycheck-${sid}"></span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span class="order-total">₹${money(o.total)}</span>
