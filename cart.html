@@ -1035,7 +1035,7 @@ async function initPayment(){
   if(finalPaise !== totalPaise) showToast('Prices were updated. Your total is ₹'+(finalPaise/100));
 
   const options={
-    key: 'rzp_test_T5A3ZUl87664TN',
+    key: serverOrder.keyId,
     amount: finalPaise,
     currency: 'INR',
     order_id: rzpOrderId,
