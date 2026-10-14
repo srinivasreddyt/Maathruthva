@@ -97,6 +97,7 @@
     .pay-status{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600;white-space:nowrap;}
     .pay-status.completed{background:#e3f2fd;color:#0d47a1;}
     .pay-status.rejected{background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;}
+    .pay-status.webhook{background:#e8f5e9;color:#2e7d32;}
     .status-confirmed{background:#fff3cd;color:#856404;}
     .status-dispatched{background:#d4edda;color:#155724;}
     .status-delivered{background:#e8d5f5;color:#4a235a;}
@@ -887,7 +888,11 @@ function statusLabel(s) {
 
 // paymentStatus is stored by the server: "completed" once Razorpay's payment was verified, "rejected" when something was wrong.
 function paymentStatusPill(o) {
-  if (o.paymentStatus === 'completed') return '<span class="pay-status completed" title="Payment verified by the server">Payment completed</span>';
+  if (o.paymentStatus === 'completed') {
+    // Present only once Razorpay's own webhook call has reached the server and passed its signature check.
+    const hook = o.webhookReceivedAt ? ' <span class="pay-status webhook" title="Razorpay webhook received (' + escapeHtml(o.webhookEvent || '') + ')">Webhook ✓</span>' : '';
+    return '<span class="pay-status completed" title="Payment verified by the server">Payment completed</span>' + hook;
+  }
   if (o.paymentStatus === 'rejected') {
     const why = { signature_mismatch: 'Signature check failed', amount_mismatch: 'Amount mismatch', payment_failed: 'Payment failed' }[o.paymentRejectReason] || 'Rejected';
     return `<span class="pay-status rejected" title="${escapeHtml(o.paymentRejectDetail || '')}">Payment rejected · ${escapeHtml(why)}</span>`;
