@@ -17,14 +17,6 @@ service cloud.firestore {
     function str(v, max) { return v is string && v.size() <= max; }
     function optStr(v, max) { return v == null || str(v, max); }
 
-    function validOrder(d) {
-      return d.paymentId is string && d.paymentId.matches('^pay_[A-Za-z0-9]+$')
-        && d.orderId is string && d.orderId.matches('^order_[A-Za-z0-9]+$')
-        && d.items is list && d.items.size() >= 1 && d.items.size() <= 20
-        && d.total is number && d.total > 0 && d.total < 1000000
-        && d.status == 'confirmed';
-    }
-
     // Public storefront data: readable by everyone, writable only by the admin (or via the console).
     match /Food_Products/{id} {
       allow read: if true;
@@ -70,15 +62,13 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // Admin order ledger. Orders are still written by the customer's browser after payment, so `create` can only
-    // check the shape; move this write to the backend (Admin SDK) to make it tamper-proof.
+    // Orders are created ONLY by the backend (Admin SDK, after it has verified the Razorpay payment), which bypasses
+    // these rules. Browsers can never create or alter an order; the admin dashboard can read and manage them.
     match /all_orders/{id} {
-      allow create: if validOrder(request.resource.data);
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
     match /orders/{id} {
-      allow create: if validOrder(request.resource.data);
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
     // Admin collection-group read across every `orders` collection (users/{uid}/orders included).
     match /{path=**}/orders/{id} {
@@ -99,8 +89,7 @@ service cloud.firestore {
       }
       match /orders/{oid} {
         allow read: if isOwner(uid);
-        allow create: if isOwner(uid) && validOrder(request.resource.data) && request.resource.data.userId == uid;
-        // Customers may only add their review to an order; the admin updates status.
+        // Created by the backend only. Customers may only add their review to an order; the admin updates status.
         allow update: if isAdmin()
           || (isOwner(uid) && request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['reviewSubmitted', 'reviewRating', 'reviewComment']));

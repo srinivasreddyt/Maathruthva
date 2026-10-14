@@ -478,50 +478,6 @@
     }
   });
 
-  window.saveOrderToFirestore = async function(orderData) {
-    try {
-      const uid = orderData.userId;
-      const now = new Date();
-      // Use IST local date (UTC+5:30) to avoid date mismatch for orders placed after midnight IST
-      const istOffset = 5.5 * 60 * 60000;
-      const istDate = new Date(now.getTime() + istOffset);
-      const dateStr = istDate.toISOString().slice(0, 10); // YYYY-MM-DD in IST
-      const enriched = { ...orderData, createdAt: serverTimestamp(), date: dateStr };
-
-      let ref, path;
-      if(uid && uid !== 'guest'){
-        path = `users/${uid}/orders`;
-        // Same id the backend uses, so a fallback save can never create a second copy of an order the server already saved.
-        if (orderData.orderId) { ref = doc(db, 'users', uid, 'orders', orderData.orderId); await setDoc(ref, enriched); }
-        else ref = await addDoc(collection(db, 'users', uid, 'orders'), enriched);
-      } else {
-        path = `orders`;
-        ref = await addDoc(collection(db, 'orders'), enriched);
-      }
-      console.log('Order saved at path:', path, '| Doc ID:', ref.id, '| Date:', dateStr);
-      if(window.showToast) window.showToast('Order saved! ID: ' + ref.id);
-
-      // Also save to top-level all_orders collection (admin view, grouped by date).
-      // Independent try/catch + retry: this must not silently vanish if it fails,
-      // since the order above has already been saved successfully for the customer.
-      const allOrderDocId = orderData.orderId || ref.id;
-      const allOrderData = { ...enriched, docId: ref.id, userPath: path };
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await setDoc(doc(db, 'all_orders', allOrderDocId), allOrderData);
-          break;
-        } catch(e2) {
-          console.error(`all_orders save attempt ${attempt} failed:`, e2.code, e2.message);
-          if (attempt === 3) { if(window.showToast) window.showToast('Order saved, but admin sync failed. Contact support if needed.'); }
-          else await new Promise(r => setTimeout(r, 800 * attempt));
-        }
-      }
-    } catch(e) {
-      console.error('Firestore save order error:', e.code, e.message);
-      if(window.showToast && e.code !== 'permission-denied') window.showToast('Firestore error: ' + e.code);
-    }
-  };
-
   window.fetchAddressesFromFirestore = async function(uid) {
     try {
       const snap = await getDocs(collection(db, 'users', uid, 'addresses'));
@@ -1085,10 +1041,10 @@ async function initPayment(){
           : active.map(c=>{const p=PRODUCTS.find(x=>x.id===c.id);const pid=(window.getProductId&&window.getProductId(p.name))||p.productId;return{productId:pid,name:p.name,qty:c.qty,price:p.price};}),
         address: addresses[selectedAddr],
         subtotal: bd.subtotal, discount: bd.discount, promoCode: bd.promoCode||'', shipping: bd.shipping, total: finalPaise/100,
-        userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||'', status:'confirmed', paymentStatus:'completed'
+        userPhone: user.phone||'', userId: user.uid||'guest', userName: user.name||'', userEmail: user.email||''
       };
-      // The backend already saved this order when it confirmed the payment; only fall back to saving from here if it could not.
-      if(window.saveOrderToFirestore && !serverSaved) window.saveOrderToFirestore(orderData);
+      // The server saves the order; if its answer was lost the Razorpay webhook completes it, so just tell the customer.
+      if(!serverSaved) showToast('Payment received. Your order is being confirmed and will appear in My Orders shortly.');
       document.getElementById('order-id-display').textContent='Order ID: '+(response.razorpay_order_id || response.razorpay_payment_id);
       // Switch from loading to success state
       document.getElementById('modal-loading-state').style.display = 'none';
