@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Publish from Firebase console > Firestore Database > Rules (or `firebase deploy --only firestore:rules`).
-// Replace REPLACE_WITH_ADMIN_EMAIL with the admin Google account email in the console editor BEFORE publishing (do not commit
+// Replace REPLACE_WITH_ADMIN_EMAIL with the admin Google account email, in LOWERCASE, in the console editor BEFORE publishing (do not commit
 // the real address; this file is served publicly). Publish only after you have signed in once on admin-orders.html with that
 // Google account, otherwise the dashboard cannot read orders.
 service cloud.firestore {
@@ -11,7 +11,7 @@ service cloud.firestore {
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
     function isAdmin() {
       return signedIn()
-        && request.auth.token.email in ['REPLACE_WITH_ADMIN_EMAIL']
+        && request.auth.token.email.lower() in ['REPLACE_WITH_ADMIN_EMAIL']
         && request.auth.token.firebase.sign_in_provider in ['password', 'google.com'];
     }
     function str(v, max) { return v is string && v.size() <= max; }
