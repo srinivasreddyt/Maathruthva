@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /cart.html
+Disallow: /login.html
+Disallow: /my-orders.html
+Disallow: /my-account.html
+
+Sitemap: https://www.maathruthva.com/sitemap.xml

@@ -2,7 +2,7 @@
   var FAQS = [
     {
       q: "What products do you sell?",
-      a: "We sell natural baby food mixes made with wholesome ingredients — including our <b>Natural Baby Food Mix</b>, <b>Growth Mix</b>, and <b>Daily Millet Mix</b>. All crafted with a mother's care! 🌿"
+      a: "We sell natural baby food mixes made with wholesome ingredients — including our <b>Natural Baby Starter Mix</b>, <b>Natural Baby Growth Mix</b>, and <b>Natural Baby Millet Mix</b>. All crafted with a mother's care! 🌿"
     },
     {
       q: "How much does shipping cost?",
