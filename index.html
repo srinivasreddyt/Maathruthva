@@ -284,6 +284,7 @@
   }
 
 @media(max-width:768px){footer .foot-col a,.foot-bottom a{display:inline-block;padding:8px 0;}}
+.price-was{color:#9a9a8a;font-size:.62em;font-weight:400;margin-left:8px;text-decoration:line-through;font-family:'Jost',sans-serif;white-space:nowrap;}
 </style>
 <script src="product-catalog.js"></script>
 
@@ -764,6 +765,15 @@ window.submitContactQuery = function(ev){
 </script>
 <script src="chatbot.js"></script>
 <script>
+// Current price, plus the original price struck through when the catalog has a higher one.
+function _renderPrice(el, entry){
+  el.textContent = '';
+  var now = document.createElement('span'); now.textContent = '₹' + entry.price; el.appendChild(now);
+  if(typeof entry.actualPrice === 'number' && entry.actualPrice > entry.price){
+    var was = document.createElement('s'); was.className = 'price-was'; was.textContent = '₹' + entry.actualPrice;
+    was.title = 'Original price'; el.appendChild(was);
+  }
+}
 function _applyProdNames(){
   document.querySelectorAll('[data-pid]').forEach(function(el){
     var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pid];
@@ -771,7 +781,7 @@ function _applyProdNames(){
   });
   document.querySelectorAll('[data-price-pid]').forEach(function(el){
     var entry = window.PRODUCT_CATALOG && window.PRODUCT_CATALOG[el.dataset.pricePid];
-    if(entry && typeof entry.price === 'number') el.textContent = '₹' + entry.price;
+    if(entry && typeof entry.price === 'number') _renderPrice(el, entry);
   });
 }
 if(window.PRODUCT_CATALOG) _applyProdNames();
